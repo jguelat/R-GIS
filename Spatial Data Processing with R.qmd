@@ -452,7 +452,7 @@ Please don't!
 
 ### Reading and writing raster data
 
-As we saw earlier, we need another package to import raster data sets. The `rast()` function from the `terra` package is what we need. It doesn't matter if our raster is continuous, discrete, or contains several bands, the `rast()` function will create the correct `terra` object. However don't forget that it's only a pointer to the data set, the full raster is not imported into memory.
+As we saw earlier, we need another package to import raster data sets. The `rast()` function from the `terra` package is what we need. It doesn't matter if our raster is continuous, discrete, or contains several bands, the `rast()` function will create the correct `terra` object. However don't forget that it's only a pointer to the data set, the full raster is not imported into memory. Calling the object will display some basic information about the data set.
 
 The digital elevation model is an extract of the DHM25 data set provided by Swisstopo, the orthophoto is an extract of the SWISSIMAGE data set also provided by Swisstopo.
 
@@ -476,7 +476,7 @@ plot(ortho)
 
 Note that the orthophoto was plotted in a different way (no axes, no legend). The `terra` package automatically detected that the raster had 3 bands and made the assumption that the bands corresponded to red, green and blue intensity values. If this assumption is not correct, you can use the `plotRGB()` function to get the desired plot.
 
-Rasters are nice objects to work with but sometimes it's nice with more familiar R objects. You can easily convert `terra` objects to dataframes containing the geographic coordinates of all pixels and the related pixel values.
+Rasters are nice objects to work with but sometimes it's nice with more familiar R objects. You can easily convert `SpatRaster` objects to dataframes containing the geographic coordinates of all pixels and the related pixel values.
 
 ```{r}
 elev_df <- as.data.frame(elev, xy = TRUE)
@@ -494,10 +494,16 @@ elev2
 plot(elev2)
 ```
 
+Exporting raster data set is really easy thanks to the `writeRaster()` function. The format will be automatically recognized based on the filename extension. As we saw in the introduction, the GeoTiff format is almost always the format we should use.
+
 ```{r}
 writeRaster(elev, "export/dem1.tif")
 writeRaster(elev2, "export/dem2.tif")
+```
 
+Remember that the first raster was a single band raster and the second one had two bands. What is happening when we visualize the latter with QGIS? It looks like QGIS is combining the bands like an RGB raster. If you want to only export a single band, you can subset the raster data set using `[[]]`, either using the band number or name.
+
+```{r}
 writeRaster(elev2[[1]], "export/dem2.tif", overwrite = TRUE)
 writeRaster(elev2[["dem"]], "export/dem2.tif", overwrite = TRUE)
 ```
@@ -515,20 +521,20 @@ st_perimeter(muni)
 ```
 
 ```{r}
-temp <- st_read("data/geodata.gpkg", "invalid", quiet = TRUE)
-plot(temp, col = 1:nrow(temp))
-st_area(temp)
-```
-
-Why is this happening? We need to talk a bit about geometric validity...
-
-```{r}
 muni_centroid <- st_centroid(muni)
 st_coordinates(muni_centroid)
 head(st_coordinates(muni))
 ```
 
 Centroid outside, st_point_on_surface()
+
+```{r}
+temp <- st_read("data/geodata.gpkg", "invalid", quiet = TRUE)
+plot(temp, col = 1:nrow(temp))
+st_area(temp)
+```
+
+Why is this happening? We need to talk a bit about geometric validity...
 
 ### Geometric validity
 
@@ -601,6 +607,44 @@ st_perimeter(sursee_poly)
 ### Spatial predicates
 
 ### Distance operations
+
+```{r}
+world_centroid <- st_centroid(World)
+sf_use_s2(FALSE)
+pt1 <- world_centroid[world_centroid$name == "Switzerland",]
+pt2 <- world_centroid[world_centroid$name == "Australia",]
+(d1 <- st_distance(pt1, pt2))
+sf_use_s2(TRUE)
+(d2 <- st_distance(pt1, pt2))
+d2 - d1
+```
+
+```{r}
+#| echo: false
+
+library(sp)
+library(geosphere)
+tmp1 <- as(pt1, "Spatial")
+tmp2 <- as(pt2, "Spatial")
+gcLine <- greatCircle(tmp1, tmp2, sp = TRUE)
+gcLine <- st_as_sf(gcLine)
+
+world_proj <- st_transform(World, "ESRI:54030")
+pt1_proj <- st_transform(pt1, "ESRI:54030")
+pt2_proj <- st_transform(pt2, "ESRI:54030")
+gcLine_proj <- st_transform(gcLine, "ESRI:54030")
+
+pt3 <- st_snap(pt1_proj, gcLine_proj, 10000)
+pt4 <- st_snap(pt2_proj, gcLine_proj, 100000)
+part <- st_collection_extract(st_split(gcLine_proj$geometry, pt3$geometry), "LINESTRING")[2]
+part <- st_collection_extract(st_split(part, pt4$geometry), "LINESTRING")[1]
+
+extent <- world_proj[which(world_proj$name == "Iceland" | world_proj$name == "Norway" | world_proj$name == "Australia"),]
+plot(st_geometry(world_proj), extent = extent, col = "grey90")
+plot(part, add = TRUE, lwd = 2, col = "red")
+plot(st_geometry(pt1_proj), add = TRUE, pch = 16, col = "red")
+plot(st_geometry(pt2_proj), add = TRUE, pch = 16, col = "red")
+```
 
 ### Aggregate by attributes
 
