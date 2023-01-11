@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.269">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Dr.&nbsp;Jérôme Guélat">
+<meta name="dcterms.date" content="2023-01-11">
+
+<title>Spatial Data Processing with R</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="Spatial Data Processing with R_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Spatial Data Processing with R_files/libs/quarto-html/quarto.js"></script>
+<script src="Spatial Data Processing with R_files/libs/quarto-html/popper.min.js"></script>
+<script src="Spatial Data Processing with R_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Spatial Data Processing with R_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Spatial Data Processing with R_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Spatial Data Processing with R_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Spatial Data Processing with R_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Spatial Data Processing with R_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Spatial Data Processing with R_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body>
+
+<header id="title-block-header" class="quarto-title-block default toc-left page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-page-right">
+      <h1 class="title">Spatial Data Processing with R</h1>
+                      </div>
+  </div>
+    
+  <div class="quarto-title-meta-author">
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-heading">Affiliations</div>
+    
+      <div class="quarto-title-meta-contents">
+      Dr.&nbsp;Jérôme Guélat 
+    </div>
+      <div class="quarto-title-meta-contents">
+          <p class="affiliation">
+              Swiss Ornithological Institute
+            </p>
+          <p class="affiliation">
+              <a href="https://www.vogelwarte.ch">
+              
+              </a>
+            </p>
+        </div>
+      </div>
+
+  <div class="quarto-title-meta">
+
+        
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">January 11, 2023</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="page-columns page-rows-contents page-layout-full toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+   
+  <ul>
+  <li><a href="#preparation" id="toc-preparation" class="nav-link active" data-scroll-target="#preparation"><span class="toc-section-number">1</span>  Preparation</a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction"><span class="toc-section-number">2</span>  Introduction</a></li>
+  <li><a href="#vector-data" id="toc-vector-data" class="nav-link" data-scroll-target="#vector-data"><span class="toc-section-number">3</span>  Vector data</a>
+  <ul class="collapse">
+  <li><a href="#vector-data-model" id="toc-vector-data-model" class="nav-link" data-scroll-target="#vector-data-model"><span class="toc-section-number">3.1</span>  Vector data model</a></li>
+  <li><a href="#a-first-look-at-vector-data-in-r" id="toc-a-first-look-at-vector-data-in-r" class="nav-link" data-scroll-target="#a-first-look-at-vector-data-in-r"><span class="toc-section-number">3.2</span>  A first look at vector data in R</a></li>
+  <li><a href="#structure-of-sf-objects" id="toc-structure-of-sf-objects" class="nav-link" data-scroll-target="#structure-of-sf-objects"><span class="toc-section-number">3.3</span>  Structure of <code>sf</code> objects</a></li>
+  </ul></li>
+  <li><a href="#raster-data" id="toc-raster-data" class="nav-link" data-scroll-target="#raster-data"><span class="toc-section-number">4</span>  Raster data</a></li>
+  <li><a href="#coordinate-reference-systems" id="toc-coordinate-reference-systems" class="nav-link" data-scroll-target="#coordinate-reference-systems"><span class="toc-section-number">5</span>  Coordinate reference systems</a></li>
+  <li><a href="#tips-and-tricks" id="toc-tips-and-tricks" class="nav-link" data-scroll-target="#tips-and-tricks"><span class="toc-section-number">6</span>  Tips and tricks</a>
+  <ul class="collapse">
+  <li><a href="#reading-and-writing-vector-data" id="toc-reading-and-writing-vector-data" class="nav-link" data-scroll-target="#reading-and-writing-vector-data"><span class="toc-section-number">6.1</span>  Reading and writing vector data</a></li>
+  <li><a href="#reading-and-writing-raster-data" id="toc-reading-and-writing-raster-data" class="nav-link" data-scroll-target="#reading-and-writing-raster-data"><span class="toc-section-number">6.2</span>  Reading and writing raster data</a></li>
+  <li><a href="#basic-geometric-computations" id="toc-basic-geometric-computations" class="nav-link" data-scroll-target="#basic-geometric-computations"><span class="toc-section-number">6.3</span>  Basic geometric computations</a></li>
+  <li><a href="#geometric-validity" id="toc-geometric-validity" class="nav-link" data-scroll-target="#geometric-validity"><span class="toc-section-number">6.4</span>  Geometric validity</a></li>
+  <li><a href="#vector-type-casting" id="toc-vector-type-casting" class="nav-link" data-scroll-target="#vector-type-casting"><span class="toc-section-number">6.5</span>  Vector type casting</a></li>
+  <li><a href="#spatial-predicates" id="toc-spatial-predicates" class="nav-link" data-scroll-target="#spatial-predicates"><span class="toc-section-number">6.6</span>  Spatial predicates</a></li>
+  <li><a href="#distance-operations" id="toc-distance-operations" class="nav-link" data-scroll-target="#distance-operations"><span class="toc-section-number">6.7</span>  Distance operations</a></li>
+  <li><a href="#aggregate-by-attributes" id="toc-aggregate-by-attributes" class="nav-link" data-scroll-target="#aggregate-by-attributes"><span class="toc-section-number">6.8</span>  Aggregate by attributes</a></li>
+  <li><a href="#great-circle-distances" id="toc-great-circle-distances" class="nav-link" data-scroll-target="#great-circle-distances"><span class="toc-section-number">6.9</span>  Great circle distances</a></li>
+  </ul></li>
+  <li><a href="#making-maps" id="toc-making-maps" class="nav-link" data-scroll-target="#making-maps"><span class="toc-section-number">7</span>  Making maps</a></li>
+  <li><a href="#more-help" id="toc-more-help" class="nav-link" data-scroll-target="#more-help"><span class="toc-section-number">8</span>  More help</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references"><span class="toc-section-number">9</span>  References</a></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content quarto-banner-title-block column-page-right" id="quarto-document-content">
+
+
+
+
+<div class="cell">
+
+</div>
+<section id="preparation" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="preparation"><span class="header-section-number">1</span> Preparation</h2>
+<p>In order to run the code for this workshop, you’ll need the following packages. You can use the following code to install them. All the required dependencies will be automatically installed.</p>
+<div class="callout-important callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Please also update to the latest version of R, otherwise you may get packages that are not fully up-to-date.</p>
+</div>
+</div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"sf"</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"lwgeom"</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"terra"</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"spdep"</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"tmap"</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"mapview"</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"mapsf"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>You’ll also need to download the following data that we’ll use in some of the examples: <a href="https://quarto.org" class="uri">https://quarto.org</a>.</p>
+</section>
+<section id="introduction" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="introduction"><span class="header-section-number">2</span> Introduction</h2>
+<p>When we work with geographic data we need to decide how to model real world objects or concepts (buildings, forests, elevation, etc.) before we can use them in a computer with a GIS (Geographic Information System) software. GIS people mainly use 2 main data models: vector and raster. Other models exist, such as TINs, point clouds or meshes, but we won’t cover them in this workshop.</p>
+<p>Vector data is normally used for high precision data sets and can be represented as points, lines or polygons. Properties of the represented features are stored as attributes. The vector types you will use depends of course on your own data and on your analyses. For example: points could be appropriate for bird nests and sightings, lines for moving animals and linear structures (paths, rivers), and polygons for territories and land cover categories. Of course a river can also be modeled as a polygon if you’re interested in its width (or you can also store its width as an attribute of the line).</p>
+<div class="callout-note callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>High precision doesn’t necessarily mean high accuracy! For example the coordinates of some points could be stored in meters with 5 decimals even though the measurement error was 2 meters.</p>
+<p>Most vector data formats include some possibility to store information about measurement errors but this is actually very rarely used.</p>
+</div>
+</div>
+<p>The best known format for storing vector data is the shapefile, an old and inefficient format developed by ESRI. Even though the shapefile format is still widely used, it has a lot of limitations and problems (listed on the following website: <a href="http://switchfromshapefile.org" class="uri">http://switchfromshapefile.org</a>). Nowadays GIS specialists advise to replace it with better alternatives such as the <strong>GeoPackage</strong> format. Every modern GIS software can read and write GeoPackages and the format is also completely open-source. It is also published as a standard by the Open Geospatial Consortium (OGC) which makes it a future-proof alternative.</p>
+<p>Raster data is basically an image divided into cells (pixels) of constant size, and each cell has an associated value. Satellite imagery, topographic maps and digital elevation models (DEM) are typical examples where the raster data model is appropriate. A raster data set can have several layers called bands, for example most aerial images have at least three bands: red, green and blue. In the raster data model, specific geographic features are aggregated to a given resolution to create a consistent data set, associated with a loss of precision. The resolution used to aggregate can have a large influence of some analyses and must be thought of carefully.</p>
+<p>There exists thousands of different raster data formats. As of today I recommend using the <strong>GeoTiff</strong> format. It is widely used in the GIS world and every GIS software can read and write raster data in this format. Note that it is also possible to use the GeoPackage format to save raster data sets, however I would advise against using it since some GIS software won’t be able to read these rasters.</p>
+<div class="callout-tip callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Vector data: use the GeoPackage format</p>
+<p>Raster data: use the GeoTiff format</p>
+</div>
+</div>
+</section>
+<section id="vector-data" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="vector-data"><span class="header-section-number">3</span> Vector data</h2>
+<section id="vector-data-model" class="level3" data-number="3.1">
+<h3 data-number="3.1" class="anchored" data-anchor-id="vector-data-model"><span class="header-section-number">3.1</span> Vector data model</h3>
+<p>The main vector types are points, lines and polygons (or a combination thereof) and the point is the base of all these types. For example a simple line consists of 2 connected points, similarly an ordered sequence of connected points will represent a more complex line (often called a polyline). A simple polygon will be modeled as an external ring, which is a special type of polyline where the first and last points are identical. In the case of lines and polygons we often speak of vertices to describe these points. Things can be a bit more complex, for example a polygon could have a hole which is modeled as an internal ring.</p>
+<p>The <strong>Simple Feature</strong> standard (<a href="https://portal.ogc.org/files/?artifact_id=25355">full documentation</a>) was developed to be sure that we all speak the same language when describing vector elements. The specification describes 18 geometry types, but don’t worry only 7 of them will be useful for us. The following figure shows these 7 types (source: Lovelace <em>et al.</em>, 2019):</p>
+<p><img src="figures/sf-classes.png" class="img-fluid"></p>
+<p>A feature represents a geographic entity modeled by one of these types. For example a building would be a single feature of type POLYGON, while the whole Hawaii archipelago would be a single feature of type MULTIPOLYGON (but you could of course also model each island as type POLYGON). A single feature using the MULTI* types can have multiple elements but this is not mandatory. Most of the time we will use the default 2D version of these types. However it is possible to include additional numeric values such as the height of each point (Z values) or some kind of measurement error (M values). Note that most GIS software will ignore these values for the vast majority of spatial analyses.</p>
+<div class="callout-important callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The feature type is usually defined for the whole vector data set, and not per feature (well actually <code>sf</code> lets you do that but this will brings you all sorts of troubles). For example, if you know that your data set will contain POLYGON and MULTIPOLYGON features, then you will have to use the MULTIPOLYGON type for all of them.</p>
+</div>
+</div>
+<p>In most GIS softwares (including R), simple features are internally encoded using the well-known binary (WKB) or well-known text (WKT) standards. As the name mentions, WKB is a binary format and hence not easily readable by normal humans. The WKT format is encoding exactly the same information as WKB, but in a more human friendly way. Here are some examples of WKT-encoded features (check the <a href="https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry">Wikipedia page</a> if you need more):</p>
+<ul>
+<li>a point: POINT (10 5)</li>
+<li>a linestring made of 3 points: LINESTRING (1 1, 2 4, 5 10)</li>
+<li>a polygon (without a hole): POLYGON ((10 5, 10 9, 5 8, 4 2, 10 5))</li>
+<li>a multilinestring: MULTILINESTRING ((1 1, 2 4, 5 10), (2 2, 5 2))</li>
+</ul>
+<p>The geometry is of course essential in order to have a spatial information but the vector data model also allows storing non-spatial attributes (often called <em>attribute table</em>) for each feature. As we will see, these tables are stored as data frames in R and each column will store some property of the related feature (identification number, name, etc.). Each row relates to a single spatial feature (which can consist of several geometries if its type is MULTI*). The following figure shows some examples (source: Tennekes &amp; Nowosad, 2021):</p>
+<p><img src="figures/vector-data-model-1.png" class="img-fluid" width="600"></p>
+</section>
+<section id="a-first-look-at-vector-data-in-r" class="level3" data-number="3.2">
+<h3 data-number="3.2" class="anchored" data-anchor-id="a-first-look-at-vector-data-in-r"><span class="header-section-number">3.2</span> A first look at vector data in R</h3>
+<p>Let’s have a look at how R stores a vector data set. The main classes and methods needed to work with spatial vector data are defined in the <code>sf</code> package (Pebesma, 2018). We will also load the <code>tmap</code> package (Tennekes, 2018) to have access to some spatial data sets.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tmap)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Linking to GEOS 3.11.0, GDAL 3.5.3, PROJ 9.1.0; sf_use_s2() is TRUE</code></pre>
+</div>
+</div>
+<p>When you first load the <code>sf</code> package, it will provide you with version information about some important open-source GIS libraries it uses. In a few rare cases, some functions will only be available if you use recent version of these libraries. If you use <code>sf</code> on Windows or Mac and install it from CRAN, they will be included inside the <code>sf</code> package and there’s no easy way to update them. These libraries are used in almost all open-source GIS software and even in some commercial ones. GDAL takes care of reading and writing your GIS files and can read 99.9% of all the existing GIS formats; GEOS is a Euclidean planar geometry engine and is used for all the common GIS analyses (intersection, union, buffer, etc.); PROJ is responsible for all the coordinate reference systems operations. The s2 library is a spherical geometry engine which is active by default for computations when using unprojected data.</p>
+<div class="callout-important callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+A bit of history
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The availability of the <code>sf</code> package was huge change in the small world of “R-Spatial”. In the old days we used a combination of several packages to process GIS vector data in R. The spatial classes (and some functions) were defined in the <code>sp</code> package, the import/export of data was managed by the <code>rgdal</code> package, and the geometric operations were available in the <code>rgeos</code> package. You’ll find a lot of code using these packages on the internet. Please refrain from using them since they’ll only be maintained until end of 2023 and will then probably be removed from CRAN. Moreover the <code>sf</code> package is definitely more powerful and much faster.</p>
+</div>
+</div>
+<p>We will now load the <code>World</code> vector data set inside the <code>tmap</code> package and have a look at its structure.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(World)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(World)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "sf"         "data.frame"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(World)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "iso_a3"       "name"         "sovereignt"   "continent"    "area"        
+ [6] "pop_est"      "pop_est_dens" "economy"      "income_grp"   "gdp_cap_est" 
+[11] "life_exp"     "well_being"   "footprint"    "inequality"   "HPI"         
+[16] "geometry"    </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>World</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 177 features and 15 fields
+Geometry type: MULTIPOLYGON
+Dimension:     XY
+Bounding box:  xmin: -180 ymin: -89.9 xmax: 180 ymax: 83.64513
+Geodetic CRS:  WGS 84
+First 10 features:
+   iso_a3                   name           sovereignt               continent
+1     AFG            Afghanistan          Afghanistan                    Asia
+2     AGO                 Angola               Angola                  Africa
+3     ALB                Albania              Albania                  Europe
+4     ARE   United Arab Emirates United Arab Emirates                    Asia
+5     ARG              Argentina            Argentina           South America
+6     ARM                Armenia              Armenia                    Asia
+7     ATA             Antarctica           Antarctica              Antarctica
+8     ATF Fr. S. Antarctic Lands               France Seven seas (open ocean)
+9     AUS              Australia            Australia                 Oceania
+10    AUT                Austria              Austria                  Europe
+                  area  pop_est pop_est_dens                    economy
+1    652860.000 [km^2] 28400000 4.350090e+01  7. Least developed region
+2   1246700.000 [km^2] 12799293 1.026654e+01  7. Least developed region
+3     27400.000 [km^2]  3639453 1.328268e+02       6. Developing region
+4     71252.172 [km^2]  4798491 6.734519e+01       6. Developing region
+5   2736690.000 [km^2] 40913584 1.495003e+01    5. Emerging region: G20
+6     28470.000 [km^2]  2967004 1.042151e+02       6. Developing region
+7  12259213.973 [km^2]     3802 3.101341e-04       6. Developing region
+8      7257.455 [km^2]      140 1.929051e-02       6. Developing region
+9   7682300.000 [km^2] 21262641 2.767744e+00 2. Developed region: nonG7
+10    82523.000 [km^2]  8210281 9.949082e+01 2. Developed region: nonG7
+                income_grp gdp_cap_est life_exp well_being footprint inequality
+1            5. Low income    784.1549   59.668        3.8      0.79 0.42655744
+2   3. Upper middle income   8617.6635       NA         NA        NA         NA
+3   4. Lower middle income   5992.6588   77.347        5.5      2.21 0.16513372
+4  2. High income: nonOECD  38407.9078       NA         NA        NA         NA
+5   3. Upper middle income  14027.1261   75.927        6.5      3.14 0.16423830
+6   4. Lower middle income   6326.2469   74.446        4.3      2.23 0.21664810
+7  2. High income: nonOECD 200000.0000       NA         NA        NA         NA
+8  2. High income: nonOECD 114285.7143       NA         NA        NA         NA
+9     1. High income: OECD  37634.0832   82.052        7.2      9.31 0.08067825
+10    1. High income: OECD  40132.6093   81.004        7.4      6.06 0.07129351
+        HPI                       geometry
+1  20.22535 MULTIPOLYGON (((61.21082 35...
+2        NA MULTIPOLYGON (((16.32653 -5...
+3  36.76687 MULTIPOLYGON (((20.59025 41...
+4        NA MULTIPOLYGON (((51.57952 24...
+5  35.19024 MULTIPOLYGON (((-65.5 -55.2...
+6  25.66642 MULTIPOLYGON (((43.58275 41...
+7        NA MULTIPOLYGON (((-59.57209 -...
+8        NA MULTIPOLYGON (((68.935 -48....
+9  21.22897 MULTIPOLYGON (((145.398 -40...
+10 30.47822 MULTIPOLYGON (((16.97967 48...</code></pre>
+</div>
+</div>
+<p>We see the <code>World</code> object is stored as a data frame with an additional geometry column (note that the name of the geometry column doesn’t need to be ‘geometry’). The content of the geometry column is displayed using the WKT standard. R is also giving us more information, like the coordinate reference system used (more on that later) and the number of dimensions (i.e.&nbsp;XY, XYZ or XYZM).</p>
+<div class="callout-note callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-6-contents" aria-controls="callout-6" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Question: why is the MULTIPOLYGON type appropriate?
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-6" class="callout-6-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Don’t forget that each feature (i.e.&nbsp;each row of the data frame) represents a country, and some countries are made up of several distinct pieces of land (e.g., islands, exclaves). That’s why we need the MULTIPOLYGON type. And since the type apply to the whole data set, even countries with a single geometry (like Switzerland) will need to be MULTIPOLYGONS.</p>
+</div>
+</div>
+</div>
+<p>It is also easy to plot the data using the usual command.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(World)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>By default R will take the first 9 attributes of the <code>sf</code> object and plot them using the available geometries. Since these objects inherit from the data base class, you can use all the typical data frame functions such as <code>summary</code>, <code>head</code>, <code>merge</code>, <code>rbind</code>, etc. Subsetting is also possible using the standard <code>[]</code> operators. Therefore you can use the following code if you only want to plot the well-being index, for the whole world, only for countries with a high index, or just for Australia.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(World[,<span class="st">"well_being"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(World[<span class="fu">which</span>(World<span class="sc">$</span>well_being <span class="sc">&gt;</span> <span class="dv">6</span>),<span class="st">"well_being"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-5-2.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(World[<span class="fu">which</span>(World<span class="sc">$</span>name <span class="sc">==</span> <span class="st">"Australia"</span>),<span class="st">"well_being"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-5-3.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Note that the color scale was adapted depending on the available values in the filtered data set. If you only need the geometries without any attributes, then you can use the <code>st_geometry()</code> function.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(World))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="callout-note callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Exercise (5 minutes)
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Play a little bit with the <code>World</code> data set, try different functions that you would normally use with a data frame. Import the <code>redlist</code> data set in the file <code>red_list_index.csv</code> (source: <a href="https://stats.oecd.org" class="uri">https://stats.oecd.org</a>) and join it to the <code>World</code> data frame to add new attributes. Plot a world map using one of the new attributes.</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>redlist <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"red_list_index.csv"</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>world2 <span class="ot">&lt;-</span> <span class="fu">merge</span>(World, redlist, <span class="at">by.x =</span> <span class="st">"iso_a3"</span>, <span class="at">by.y =</span> <span class="st">"code"</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(world2[,<span class="st">"index_2020"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</div>
+</div>
+</section>
+<section id="structure-of-sf-objects" class="level3" data-number="3.3">
+<h3 data-number="3.3" class="anchored" data-anchor-id="structure-of-sf-objects"><span class="header-section-number">3.3</span> Structure of <code>sf</code> objects</h3>
+<p>Most of the time you won’t need to create your own <code>sf</code> objects from scratch since you’ll import some existing GIS data. But if you need to, there are special functions to help you. This is also a good way to get a better understanding of the structure of <code>sf</code> objects. The standard process is shown in the following figure (source: Lovelace <em>et al.</em>, 2019):</p>
+<p><img src="figures/02-sfdiagram.png" class="img-fluid" width="800"></p>
+<p>You first need to create each feature geometry using some constructor functions. Each of these features will be of class <code>sfg</code> (simple feature geometry). Then you collect all these geometries in a list using the <code>st_sfc()</code> function. You get a new object of class <code>sfc</code> (simple feature list-column). After that you combine the newly created simple feature list-column with the attributes (stored as a data frame, or a tibble) using the <code>st_sf()</code> function in order to get an <code>sf</code> object.</p>
+<p>Since this is rather abstract, let’s look at a simple example. Imagine we want to create a point data set containing three bird observations, and each observation will have the following attributes: species and sex. We start by creating our point geometries:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>pt1 <span class="ot">&lt;-</span> <span class="fu">st_point</span>(<span class="fu">c</span>(<span class="dv">2657000</span>, <span class="dv">1219000</span>))</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>pt2 <span class="ot">&lt;-</span> <span class="fu">st_point</span>(<span class="fu">c</span>(<span class="dv">2658000</span>, <span class="dv">1218000</span>))</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>pt3 <span class="ot">&lt;-</span> <span class="fu">st_point</span>(<span class="fu">c</span>(<span class="dv">2659000</span>, <span class="dv">1217000</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s have a look at what we’ve just created:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>pt1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>POINT (2657000 1219000)</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(pt1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "XY"    "POINT" "sfg"  </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">typeof</span>(pt1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "double"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(pt1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> 'XY' num [1:2] 2657000 1219000</code></pre>
+</div>
+</div>
+<p>Our first object is a 2D point (otherwise we would see XYZ or XYZM) of class <code>sfg</code>. If we look a bit more into the details of the structure, we see that it is actually stored as vector of type <code>double</code> (with length 2).</p>
+<p>Now we need to collect our points inside an <code>sfc</code> object. This is simply a list of <code>sfg</code> objects with an associated coordinate reference system (CRS). Since we collected our data in Switzerland, we will use the standard Swiss coordinate reference system. As we will see later, most coordinate reference systems are identified by a specific number.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>pts <span class="ot">&lt;-</span> <span class="fu">st_sfc</span>(pt1, pt2, pt3, <span class="at">crs =</span> <span class="dv">2056</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let’s have a look at our new creation:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>pts</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Geometry set for 3 features 
+Geometry type: POINT
+Dimension:     XY
+Bounding box:  xmin: 2657000 ymin: 1217000 xmax: 2659000 ymax: 1219000
+Projected CRS: CH1903+ / LV95</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>POINT (2657000 1219000)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>POINT (2658000 1218000)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>POINT (2659000 1217000)</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(pts)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "sfc_POINT" "sfc"      </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">typeof</span>(pts)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "list"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">str</span>(pts)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>sfc_POINT of length 3; first list element:  'XY' num [1:2] 2657000 1219000</code></pre>
+</div>
+</div>
+<p>This confirms that our <code>sfc</code> object is actually a list, and this object will be the geometry column of the soon to be created <code>sf</code> object. Since our object is a list, it is easy to extract individual elements if needed:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract the second item of the list</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>pts[[<span class="dv">2</span>]]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>POINT (2658000 1218000)</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span>(pts[[<span class="dv">2</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "XY"    "POINT" "sfg"  </code></pre>
+</div>
+</div>
+<p>The feature geometries are defined and stored in an <code>sfc</code> object, now we just need to define the attributes of each feature. We store them in a data frame using the same order as the geometries.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>pts_data <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">species =</span> <span class="fu">c</span>(<span class="st">"wallcreeper"</span>, <span class="st">"alpine chough"</span>, <span class="st">"kingfisher"</span>),</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>                       <span class="at">sex =</span> <span class="fu">c</span>(<span class="st">"male"</span>, <span class="st">"female"</span>, <span class="st">"female"</span>))</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>pts_data</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        species    sex
+1   wallcreeper   male
+2 alpine chough female
+3    kingfisher female</code></pre>
+</div>
+</div>
+<p>And as a last step we combine the feature geometries with the related attributes using the <code>st_sf()</code> function. We now have a typical GIS data set stored as an <code>sf</code> object.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>pts_sf <span class="ot">&lt;-</span> <span class="fu">st_sf</span>(pts_data, <span class="at">geometry =</span> pts)</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>pts_sf</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 3 features and 2 fields
+Geometry type: POINT
+Dimension:     XY
+Bounding box:  xmin: 2657000 ymin: 1217000 xmax: 2659000 ymax: 1219000
+Projected CRS: CH1903+ / LV95
+        species    sex                geometry
+1   wallcreeper   male POINT (2657000 1219000)
+2 alpine chough female POINT (2658000 1218000)
+3    kingfisher female POINT (2659000 1217000)</code></pre>
+</div>
+</div>
+<p>Since everything is stored as lists, it is again easy to access individual elements of the <code>sf</code> object:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract the 3rd geometry</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>pts_sf<span class="sc">$</span>geometry[[<span class="dv">3</span>]]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>POINT (2659000 1217000)</code></pre>
+</div>
+</div>
+<p>We process similarly to create other geometry types from scratch, the only difference is that we now need matrices to store the vertices of the lines and polygons instead of a simple vector, and for multilinestrings, (multi-)polygons and geometry collections, we need more lists to encapsulate everything. If you’re not sure how to create geometries, the <code>sf</code> documentation provides examples for all the geometry types. Look for the following functions: <code>st_point()</code>, <code>st_linestring()</code>, <code>st_polygon()</code>, <code>st_multipoint()</code>, <code>st_multilinestring()</code>, <code>st_multipolygon()</code>, <code>st_geometrycollection()</code>. Here’s a more complex example showing how to create a multipolygon (including one geometry with a hole) inside a <code>sfg</code> object. The next steps (collecting geometries in a <code>sfc</code> object, adding attributes and store as a <code>sf</code> object) are exactly the same as before.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co"># rbind creates matrices and makes the coding easier</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>pol1_border <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">5</span>), <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">2</span>), <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">1</span>), <span class="fu">c</span>(<span class="dv">4</span>, <span class="dv">4</span>), <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">5</span>))</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>pol1_hole <span class="ot">&lt;-</span> <span class="fu">rbind</span>(<span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">4</span>), <span class="fu">c</span>(<span class="dv">3</span>, <span class="dv">4</span>), <span class="fu">c</span>(<span class="dv">3</span>, <span class="dv">3</span>), <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>), <span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">4</span>))</span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>pol1 <span class="ot">&lt;-</span> <span class="fu">list</span>(pol1_border, pol1_hole)</span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>pol2 <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="fu">rbind</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">2</span>), <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>), <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>), <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">3</span>), <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">2</span>)))</span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>multipolygon_list <span class="ot">&lt;-</span> <span class="fu">list</span>(pol1, pol2)</span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a>multipol <span class="ot">&lt;-</span> <span class="fu">st_multipolygon</span>(multipolygon_list)</span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>multipol</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>MULTIPOLYGON (((1 5, 2 2, 4 1, 4 4, 1 5), (2 4, 3 4, 3 3, 2 3, 2 4)), ((0 2, 1 2, 1 3, 0 3, 0 2)))</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(multipol, <span class="at">col =</span> <span class="st">"navy"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="callout-note callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Exercise (5 minutes)
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Try to build your own <code>sfc</code> and <code>sf</code> objects.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="raster-data" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="raster-data"><span class="header-section-number">4</span> Raster data</h2>
+<p>As we saw above, a raster data set is basically an image, which is the same as a grid of pixels. Most raster data sets you will encounter will have a constant pixel size (also called resolution) and we will only focus on these during this workshop. However don’t forget that other kind of grids, for example sheared or curvilinear, also exist. This is sometimes needed depending on the coordinate reference system used to store the data, or can be caused by some reprojections.</p>
+<p>Rasters are perfect for storing continuous values contained in a large area (called the extent of the raster). Digital elevation models are a typical example of such data, each cell is used to store an elevation value. You will also find rasters containing discrete values, these are often used to store landcover or landuse data sets. Note that, unlike vector data, it is impossible to store overlapping features in the same data set. We saw that vector data sets can store multiple attributes for a single feature. We can use a similar technique for raster data sets with the help of raster bands. You can think of raster bands as different layers of the same grid, each layer containing a different information. This is mainly use for spectral data, for example the red, green and blue intensity values in an aerial picture; satellite imagery will have even more bands depending on the number of sensors. Multiband rasters are also often used to store environment variables that change through time (e.g.&nbsp;a temperature raster, with one band per day). Such rasters are often called datacubes.</p>
+<p><img src="figures/raster_types.jpg" class="img-fluid"></p>
+<p>Performing computations on raster data sets is usually very efficient and faster than using vector data, this is due to the fact that rasters are stored in some kind of matrix formats with some extra information (such as the coordinate reference system and the origin of the raster). It this thus possible to use highly efficient linear algebra libraries. The mathematical operations performed on raster cells are called map algebra.</p>
+<p>For this workshop we will use the <code>terra</code> package to work with raster data. This package has everything needed to import, analyses, visualize and export raster data sets. Like the <code>sf</code> package, it is also using the GDAL library for the import/export operations, which means it can open almost every raster data format. Unlike the <code>sf</code> package, <code>terra</code> will not import the full data sets in memory but only create a pointer to the data and then read smaller blocks of data successively. This allows working with very large rasters with a relatively small memory footprint. The amount of functions available in the <code>terra</code> package is similar to typical GIS software.</p>
+<div class="callout-important callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Rasters and R workspaces
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Since <code>terra</code> only stores a pointer to the raster data set, this means the actual data set won’t be included if you save your session in an R workspace (.Rdata files). If you really want to include it in your workspace, you can use the <code>wrap()</code> function. Note that this is also needed if you want to pass raster data over a connection that serializes, e.g.&nbsp;to a computer cluster.</p>
+</div>
+</div>
+<p>There is another famous R package to process raster data, the <code>stars</code> package. It is especially useful if you need to work with “irregular” rasters (sheared, curvilinear, etc.) or with complex datacubes. It is also tidyverse-friendly and the syntax is closed to the one use in <code>sf</code>. However the number of available functions is (still) much lower than in <code>terra</code>. If you need to use both packages, it is fortunately easy to convert raster objects from <code>terra</code> to <code>stars</code> (using the function <code>st_as_stars()</code>), and the other way round (using the function <code>rast()</code>).</p>
+<div class="callout-note callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+A bit of history
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>A revolution happened in 2010 in the small world of R-Spatial when the <code>raster</code> package was released. People were able to perform analyses using raster data sets in R instead of using a standard GIS software. The package has been maintained during many years, and many functions were added. However its developer decided to create a new package from scratch in order to improve speed and memory efficiency, the <code>terra</code> package was born. You will often find a lot of R code using the <code>raster</code> package on the web. Fortunately it is quite easy to adapt code written for the <code>raster</code> package to <code>terra</code>. The functions have similar names (sometimes even identical) and everything that was available in <code>raster</code> should also be available in <code>terra</code>. Actually the recent versions of <code>raster</code> even use <code>terra</code> in the background instead of the original <code>raster</code> code.</p>
+</div>
+</div>
+</section>
+<section id="coordinate-reference-systems" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="coordinate-reference-systems"><span class="header-section-number">5</span> Coordinate reference systems</h2>
+<p>The majority of normal people will get scared if there’s some problem to solve involving coordinate reference systems or projections. That’s why I will keep this part really short and only show you the stuff you will need to perform standard GIS analyses with R. If you want to read more about this (extremely interesting) topic, I invite to read the following book chapters: <a href="https://geocompr.robinlovelace.net/spatial-class.html#crs-intro" class="uri">https://geocompr.robinlovelace.net/spatial-class.html#crs-intro</a> and <a href="https://r-tmap.github.io/tmap-book/geodata.html#crs" class="uri">https://r-tmap.github.io/tmap-book/geodata.html#crs</a>.</p>
+<p>There is a famous expression saying “spatial is special”… One of the main reasons is that such data will have an associated location and you thus need to a reference frame to describe this location. This reference frame is called a coordinate reference system (CRS) in the GIS world. CRSs can be either geographic or projected.</p>
+<div class="callout-important callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>When you’re working with GIS data, you should always know the CRS you’re using. Otherwise coordinates are just numbers without a reference frame. When you share GIS data, make sure the CRS is always defined in the data set or documented in some other way. The CRS of a vector data set can be queried with the <code>st_crs()</code> function, for a terra object you should use the <code>crs()</code> function.</p>
+</div>
+</div>
+<p>A geographic CRS will identify locations on a spheroid or an ellipsoid using 2 values: latitude and longitude. The shape of the Earth is actually a geoid, but it is too complex to perform computations and thus one has to use approximations. The spheroid is making the assumptions that the Earth is a sphere, while the ellipsoid is a better approximation accounting for the fact that our planet is a bit compressed. Geographic coordinate systems are not using a projection! All the computations (distances, buffers, etc.) have to happen on the spheroid/ellipsoid which makes things more complex. It is easy to make mistakes when working with geographic CRSs, and even smart people fell in this trap (e.g.&nbsp;<a href="https://georeferenced.wordpress.com/2014/05/22/worldmapblunders" class="uri">https://georeferenced.wordpress.com/2014/05/22/worldmapblunders</a>).</p>
+<p>Projected CRSs are based on geographic CRSs but include an additional projection step on a flat surface. When using a projected CRS, locations are described using Cartesian coordinates called easting and northing (x and y). Projecting a spherical or ellipsoidal surface on a plane will cause deformations. These will affect four properties of the surface: areas, distances, shapes and directions. A projected CRS can preserve only one or two of these properties. There exists a ton of different projections and all of them make different compromises, some are even totally useless (check this beautiful xkcd comic: <a href="https://xkcd.com/977" class="uri">https://xkcd.com/977</a>). Choosing a projection can be challenging, especially if your data covers a very large area. The following websites allow you to visualize the main projection types: <a href="https://www.geo-projections.com" class="uri">https://www.geo-projections.com</a> and <a href="https://map-projections.net/singleview.php" class="uri">https://map-projections.net/singleview.php</a>. The second website also provides a nice tool to visualize distortions called a Tissot indicatrix. Fortunately, if your data is within a “smallish” area, it is relatively easy to find a good projected CRS that has only minimal distortions. Almost every country has its own recommended projected CRS (or CRSs), and if your data covers several countries, you can use some UTM (Universal Transverse Mercator) coordinate systems.</p>
+<div class="callout-tip callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>It is almost always easier to work with a projected CRS, except if your data is really global (or covering a really large area, like a continent). Moreover, most GIS software will (still) make the assumption that you’re data is on a flat plane, even if you’re working with a geographic CRS. The <code>sf</code> package is kind of an exception since it will actually perform calculations on a spheroid if you use a geographic CRS, thanks to the s2 library.</p>
+</div>
+</div>
+<div class="callout-important callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The CRS used by almost all mapping websites (OpenStreetMap, Google Maps, etc.) should never be used for any analysis. It is a slightly modified version of the Mercator projection called Web Mercator or Pseudo-Mercator. It has some advantages allowing good visualization speed, but the distortions are massive. Check the following website: <a href="https://www.thetruesize.com" class="uri">https://www.thetruesize.com</a>.</p>
+</div>
+</div>
+<p>With so many CRSs available, we need a way to classify them. That’s what the EPSG (European Petroleum Survey Group) started doing a few years ago. They collected and documented most available CRSs in a data set which is now called the EPSG Geodetic Parameter Dataset (<a href="https://epsg.org/home.html" class="uri">https://epsg.org/home.html</a>). In this data set, every CRS has a unique identification number that can be used in a GIS software instead of writing the full definition of the CRS. The best available transformations between CRSs are also defined. Sadly this data set is still missing a few interesting CRSs and was thus completed by other companies such as ESRI. This is the reason why you’ll sometimes see ESRI codes instead of EPSG for some CRSs. The following CRSs are the most important for us:</p>
+<table class="table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2056 (EPSG)</td>
+<td>CH1903+/LV95</td>
+<td>Projected CRS currently used in Switzerland</td>
+</tr>
+<tr class="even">
+<td>21781 (EPSG)</td>
+<td>CH1903/LV03</td>
+<td>Former projected CRS used in Switzerland, you will still find data sets using this one</td>
+</tr>
+<tr class="odd">
+<td>4326 (EPSG)</td>
+<td>WGS84</td>
+<td>Geographic CRS used for most global data sets, and by GPS devices</td>
+</tr>
+<tr class="even">
+<td>3857 (EPSG)</td>
+<td>Pseudo-Mercator</td>
+<td>Projected CRS used by online maps</td>
+</tr>
+<tr class="odd">
+<td>8857 (EPSG)</td>
+<td>Equal Earth Greenwich</td>
+<td>Nice equal-area projection for world maps</td>
+</tr>
+<tr class="even">
+<td>54030 (ESRI)</td>
+<td>Robinson</td>
+<td>Aesthetically pleasing projection for world maps</td>
+</tr>
+</tbody>
+</table>
+<div class="callout-important callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Proj4strings
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>When looking for examples on the web, you will often find code using what is called a proj4string to define a CRS or to reproject data. For example the proj4string for the current Swiss CRS looks like this: <code>+proj=somerc +lat_0=46.9524055555556 +lon_0=7.43958333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs +type=crs</code>. This was the standard way of describing CRSs until a few years ago. You should NOT use these strings, instead always use the EPSG number to be on the safe side. Otherwise you may get small to medium position errors when reprojecting your data.</p>
+</div>
+</div>
+<div class="callout-note callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Exercise (5 minutes)
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>You can easily inspect the way CRSs are stored in modern GIS software. For example if you want to inspect the current Swiss CRS, try <code>st_crs(2056)</code>. You will get the full description of the CRS. Try to understand some of the elements. If you use EPSG codes, you can simply enter the code as an integer, if it’s an ESRI code you should use <code>st_crs("ESRI:xxxxx")</code> where <code>xxxxx</code> is the ESRI code.</p>
+</div>
+</div>
+</section>
+<section id="tips-and-tricks" class="level2" data-number="6">
+<h2 data-number="6" class="anchored" data-anchor-id="tips-and-tricks"><span class="header-section-number">6</span> Tips and tricks</h2>
+<section id="reading-and-writing-vector-data" class="level3" data-number="6.1">
+<h3 data-number="6.1" class="anchored" data-anchor-id="reading-and-writing-vector-data"><span class="header-section-number">6.1</span> Reading and writing vector data</h3>
+<p>We had a look at the gory details of the internal structure <code>sf</code> objects. However most of the time you will not create such objects on your own but rather rely on the <code>sf</code> package to create the right structure when you import existing GIS data. The <code>sf</code> package is using the GDAL (Geospatial Data Abstraction Library) library to read and write GIS files, and this means you will be able to import almost all existing GIS vector formats. Note that the vector part of the GDAL library is often called OGR. Sometimes you will not get a standard GIS data set but a simple CSV (or Excel) file containing coordinates and related attributes. We will first see how to import these different data types in order to use them with the <code>sf</code> package, and then how to export <code>sf</code> objects in a standard GIS format.</p>
+<section id="importing-a-geopackage" class="level4" data-number="6.1.1">
+<h4 data-number="6.1.1" class="anchored" data-anchor-id="importing-a-geopackage"><span class="header-section-number">6.1.1</span> Importing a GeoPackage</h4>
+<p>The GeoPackage format is the best available open format to store vector data. It is based on the SQLite database format which is probably one of the most used file-based database nowadays. You can think of it as a special folder containing one or several GIS data sets. Since we normally don’t know in advance if a GeoPackage contains one or more data sets, we first have to inspect it.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_layers</span>(<span class="st">"data/geodata.gpkg"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Driver: GPKG 
+Available layers:
+      layer_name     geometry_type features fields       crs_name
+1        streets Multi Line String     7690      3 CH1903+ / LV95
+2      landcover     Multi Polygon     1038      2 CH1903+ / LV95
+3      buildings     Multi Polygon    14125      2 CH1903+ / LV95
+4 municipalities     Multi Polygon        7      3 CH1903+ / LV95
+5        invalid           Polygon        3      0 CH1903+ / LV95</code></pre>
+</div>
+</div>
+<p>You should not always trust the reported number of features. Some GIS format such as the GeoPackage report this number, some don’t. If the GeoPackage was produced by a software that doesn’t properly implement the standard, the reported number of features can be wrong (but this shouldn’t have any other bad consequence). If you want to be sure to get the correct number, you can use the <code>do_count = TRUE</code> argument of the <code>st_layers()</code> function, but this will be slower.</p>
+<p>To read the data, you use the <code>st_read()</code> function, the first argument is the path of the GeoPackage, and the second argument is the layer you want to import. The function will return a <code>sf</code> object. By default you’ll get some information about the data being imported. If you don’t need them, you can use the argument <code>quiet = TRUE</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>muni <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="st">"data/geodata.gpkg"</span>, <span class="st">"municipalities"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Reading layer `municipalities' from data source 
+  `/Users/jguelat/Desktop/R-GIS/data/geodata.gpkg' using driver `GPKG'
+Simple feature collection with 7 features and 3 fields
+Geometry type: MULTIPOLYGON
+Dimension:     XY
+Bounding box:  xmin: 2648317 ymin: 1213352 xmax: 2660750 ymax: 1227618
+Projected CRS: CH1903+ / LV95</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>streets <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="st">"data/geodata.gpkg"</span>, <span class="st">"streets"</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>muni</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 7 features and 3 fields
+Geometry type: MULTIPOLYGON
+Dimension:     XY
+Bounding box:  xmin: 2648317 ymin: 1213352 xmax: 2660750 ymax: 1227618
+Projected CRS: CH1903+ / LV95
+   bfs       name popsize                           geom
+1 1093 Neuenkirch    7194 MULTIPOLYGON (((2654554 121...
+2 1094    Nottwil    4089 MULTIPOLYGON (((2654554 121...
+3 1102    Sempach    4186 MULTIPOLYGON (((2656062 121...
+4 1095  Oberkirch    5014 MULTIPOLYGON (((2649729 122...
+5 1084       Eich    1610 MULTIPOLYGON (((2654640 122...
+6 1099   Schenkon    3088 MULTIPOLYGON (((2652397 122...
+7 1103     Sursee   10382 MULTIPOLYGON (((2648801 122...</code></pre>
+</div>
+</div>
+<p>We see some basic information about the data set, and the first features are shown as well with all the attributes.</p>
+</section>
+<section id="importing-a-shapefile" class="level4" data-number="6.1.2">
+<h4 data-number="6.1.2" class="anchored" data-anchor-id="importing-a-shapefile"><span class="header-section-number">6.1.2</span> Importing a Shapefile</h4>
+<p>If you really need to import a Shapefile, you can use the same function. Since Shapefiles cannot contain more than one data set, we only need to provide the first argument of the function. A Shapefile consists of several file with different extensions (.shp, .shx, etc.), we use the .shp extension by default when importing.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>muni2 <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="st">"data/municipalities.shp"</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>muni2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 7 features and 3 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: 2648317 ymin: 1213352 xmax: 2660750 ymax: 1227618
+Projected CRS: CH1903+ / LV95
+  fid  bfs       name                       geometry
+1   1 1093 Neuenkirch POLYGON ((2654554 1217985, ...
+2   2 1094    Nottwil POLYGON ((2654554 1217985, ...
+3   3 1102    Sempach POLYGON ((2656062 1219916, ...
+4   4 1095  Oberkirch POLYGON ((2649729 1221262, ...
+5   5 1084       Eich POLYGON ((2654640 1224638, ...
+6   6 1099   Schenkon POLYGON ((2652397 1224195, ...
+7   7 1103     Sursee POLYGON ((2648801 1225672, ...</code></pre>
+</div>
+</div>
+<p>This is actually the same data set as the one in the GeoPackage, however we seen that <code>sf</code> is now using polygons instead of multipolygons. This is caused by the fact that the Shapefile format does not distinguish properly between the two types. You can thus have a combination of polygons and multipolygons in the same data set.</p>
+</section>
+<section id="importing-from-a-postgis-database" class="level4" data-number="6.1.3">
+<h4 data-number="6.1.3" class="anchored" data-anchor-id="importing-from-a-postgis-database"><span class="header-section-number">6.1.3</span> Importing from a PostGIS database</h4>
+<p>PostGIS is a famous open-source extension for the PostgreSQL database management system. It allows storing all kind of GIS data inside a database and perform hundreds of typical GIS analyses. The Swiss Ornithological Institute is using PostGIS to store almost all its bird data and a lot of other GIS data sets. If you have a laptop provided by the institute and you have access to the institute internal network (via cable or private Wi-Fi, not the public one), you should be able to run the following code.</p>
+<p>First we need to load the <code>RPostgres</code> package which provides function to access PostgreSQL databases (and hence PostGIS, too). There is another package providing similar functionality called <code>RPostgreSQL</code>, but in my opinion the <code>RPostgres</code> is better maintained and I experienced less problems.</p>
+<p>After storing all the connection details in some variables, we can finally create a connection to the database using the <code>dbConnect()</code> function.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(RPostgres)</span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Login data</span></span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>user <span class="ot">&lt;-</span> <span class="st">"gast_vowa"</span></span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>password <span class="ot">&lt;-</span> <span class="fu">scan</span>(<span class="st">"/Users/jguelat/Desktop/pass.txt"</span>, <span class="at">what =</span> <span class="st">"character"</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>host <span class="ot">&lt;-</span> <span class="st">"dbspatialdata1"</span></span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>database <span class="ot">&lt;-</span> <span class="st">"research"</span></span>
+<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Connection to the database</span></span>
+<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a>dbcon <span class="ot">&lt;-</span> <span class="fu">dbConnect</span>(<span class="fu">Postgres</span>(), <span class="at">dbname =</span> database, <span class="at">host =</span> host, <span class="at">user =</span> user, <span class="at">password =</span> password)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>After that we need to import the data with a query, using again the <code>st_read()</code> function. Note that the first argument of the function must be the database connection object. The first possibility consists of importing the whole layer (called table in the database lingo) with all its attributes. This is what we do for the <code>cantons1</code> data set. We need to use the <code>Id()</code> function to specify the location of the table inside the database. In a PostgreSQL database, a schema is a bit like a folder where we store tables, this allows us to implement some structure inside the database. In our case the table <code>cantonal_boundaries_ch</code> is stored inside the schema <code>perimeter</code>. Note that we don’t need the <code>Id()</code> function if the table are stored in the <code>public</code> schema.</p>
+<p>We can also specify a SQL query to import the data, like for the <code>cantons2</code> data set. Using this kind of query, we are fully flexible. We can for example specify the attributes we want to import, specific data filters, we can even join different tables together (by attributes or even spatially). Once again we have to specify the schema, but this is done a bit differently.</p>
+<p>Once we have our <code>sf</code> objects, we still need to disconnect the database.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load cantonal boundaries</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>cantons1 <span class="ot">&lt;-</span> <span class="fu">st_read</span>(dbcon, <span class="at">layer =</span> <span class="fu">Id</span>(<span class="at">schema =</span> <span class="st">"perimeter"</span>, <span class="at">table =</span> <span class="st">"cantonal_boundaries_ch"</span>))</span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>cantons2 <span class="ot">&lt;-</span> <span class="fu">st_read</span>(dbcon, <span class="at">query =</span> <span class="st">"SELECT id, name, geom</span></span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a><span class="st">                                    FROM perimeter.cantonal_boundaries_ch</span></span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a><span class="st">                                    WHERE name = 'Fribourg'"</span>)</span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Disconnect database</span></span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a><span class="fu">dbDisconnect</span>(dbcon)</span>
+<span id="cb59-9"><a href="#cb59-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-10"><a href="#cb59-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Show sf objects</span></span>
+<span id="cb59-11"><a href="#cb59-11" aria-hidden="true" tabindex="-1"></a>cantons1</span>
+<span id="cb59-12"><a href="#cb59-12" aria-hidden="true" tabindex="-1"></a>cantons2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="importing-a-csv-file-with-coordinates" class="level4" data-number="6.1.4">
+<h4 data-number="6.1.4" class="anchored" data-anchor-id="importing-a-csv-file-with-coordinates"><span class="header-section-number">6.1.4</span> Importing a CSV file with coordinates</h4>
+<p>If you have a table containing coordinates of point data (e.g.&nbsp;sites or bird sightings), you should use the <code>st_as_sf()</code> function. The first argument should be the dataframe containing the data, and you also need to specify the names of the columns containing the geographic coordinates, and the CRS used.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>obs <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"data/observations.csv"</span>)</span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(obs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  species_id               name       date       x       y
+1       4240 Eurasian Blackbird 2022-04-12 2658433 1220946
+2       3800  Eurasian Blue Tit 2022-04-12 2658442 1221138
+3       4240 Eurasian Blackbird 2022-05-09 2658607 1221189
+4       4240 Eurasian Blackbird 2022-05-09 2658597 1221137
+5       4240 Eurasian Blackbird 2022-05-09 2658569 1220956
+6       3800  Eurasian Blue Tit 2022-05-09 2658476 1220904</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a>obs <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(obs, <span class="at">coords =</span> <span class="fu">c</span>(<span class="st">"x"</span>, <span class="st">"y"</span>), <span class="at">crs =</span> <span class="dv">2056</span>)</span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>obs</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 530 features and 3 fields
+Geometry type: POINT
+Dimension:     XY
+Bounding box:  xmin: 2649549 ymin: 1218571 xmax: 2660110 ymax: 1225531
+Projected CRS: CH1903+ / LV95
+First 10 features:
+   species_id               name       date                geometry
+1        4240 Eurasian Blackbird 2022-04-12 POINT (2658433 1220946)
+2        3800  Eurasian Blue Tit 2022-04-12 POINT (2658442 1221138)
+3        4240 Eurasian Blackbird 2022-05-09 POINT (2658607 1221189)
+4        4240 Eurasian Blackbird 2022-05-09 POINT (2658597 1221137)
+5        4240 Eurasian Blackbird 2022-05-09 POINT (2658569 1220956)
+6        3800  Eurasian Blue Tit 2022-05-09 POINT (2658476 1220904)
+7        4240 Eurasian Blackbird 2022-05-09 POINT (2658514 1221205)
+8        3800  Eurasian Blue Tit 2022-05-09 POINT (2658517 1221195)
+9        4240 Eurasian Blackbird 2022-05-23 POINT (2658570 1221219)
+10       4240 Eurasian Blackbird 2022-05-23 POINT (2658455 1220911)</code></pre>
+</div>
+</div>
+</section>
+<section id="exporting-to-geopackage" class="level4" data-number="6.1.5">
+<h4 data-number="6.1.5" class="anchored" data-anchor-id="exporting-to-geopackage"><span class="header-section-number">6.1.5</span> Exporting to GeoPackage</h4>
+<p>To export vector data, you need to use the <code>st_write()</code> function. Like the <code>st_read()</code> function, it uses the GDAL library, so you’ll be able to export in many different formats. You can specify the format explicitely, otherwise <code>sf</code> will try to guess it based on the file extension. For a GeoPackage, you need to specify the name of the GeoPackage first (it will be automatically created if it doesn’t exist) and the name of the data set that will be stored inside the GeoPackage. If you specify a GeoPackage that already exists, the data set will be added to it as a new table.</p>
+<div class="cell">
+
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_write</span>(obs, <span class="st">"export/birds.gpkg"</span>, <span class="st">"observations"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Writing layer `observations' to data source `export/birds.gpkg' using driver `GPKG'
+Writing 530 features with 3 fields and geometry type Point.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a>obs2 <span class="ot">&lt;-</span> obs[<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>,]</span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a><span class="fu">st_write</span>(obs2, <span class="st">"export/birds.gpkg"</span>, <span class="st">"observations2"</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a><span class="fu">st_layers</span>(<span class="st">"export/birds.gpkg"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Driver: GPKG 
+Available layers:
+     layer_name geometry_type features fields       crs_name
+1  observations         Point      530      3 CH1903+ / LV95
+2 observations2         Point       10      3 CH1903+ / LV95</code></pre>
+</div>
+</div>
+<p>If you want to delete a data set, you can use the <code>st_delete()</code> function. Think twice before doing it, there will be no warning!</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_delete</span>(<span class="st">"export/birds.gpkg"</span>, <span class="st">"observations2"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Deleting layer `observations2' using driver `GPKG'</code></pre>
+</div>
+</div>
+</section>
+<section id="exporting-to-shapefile" class="level4" data-number="6.1.6">
+<h4 data-number="6.1.6" class="anchored" data-anchor-id="exporting-to-shapefile"><span class="header-section-number">6.1.6</span> Exporting to Shapefile</h4>
+<p>Please don’t!</p>
+</section>
+</section>
+<section id="reading-and-writing-raster-data" class="level3" data-number="6.2">
+<h3 data-number="6.2" class="anchored" data-anchor-id="reading-and-writing-raster-data"><span class="header-section-number">6.2</span> Reading and writing raster data</h3>
+<p>As we saw earlier, we need another package to import raster data sets. The <code>rast()</code> function from the <code>terra</code> package is what we need. It doesn’t matter if our raster is continuous, discrete, or contains several bands, the <code>rast()</code> function will create the correct <code>terra</code> object. However don’t forget that it’s only a pointer to the data set, the full raster is not imported into memory.</p>
+<div class="cell">
+
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(terra)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>terra 1.6.47</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>elev <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="st">"data/dem.tif"</span>)</span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a>elev</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>class       : SpatRaster 
+dimensions  : 604, 840, 1  (nrow, ncol, nlyr)
+resolution  : 25, 25  (x, y)
+extent      : 2643988, 2664988, 1212912, 1228012  (xmin, xmax, ymin, ymax)
+coord. ref. : CH1903+ / LV95 (EPSG:2056) 
+source      : dem.tif 
+name        : dem </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(elev)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-27-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a>ortho <span class="ot">&lt;-</span> <span class="fu">rast</span>(<span class="st">"data/sempach_ortho.tif"</span>)</span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>ortho</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>class       : SpatRaster 
+dimensions  : 1427, 1996, 3  (nrow, ncol, nlyr)
+resolution  : 0.1000104, 0.1000196  (x, y)
+extent      : 2657219, 2657419, 1219699, 1219842  (xmin, xmax, ymin, ymax)
+coord. ref. : CH1903+ / LV95 (EPSG:2056) 
+source      : sempach_ortho.tif 
+colors RGB  : 1, 2, 3 
+names       : sempach_ortho_1, sempach_ortho_2, sempach_ortho_3 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(ortho)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-27-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Note that the orthophoto was plotted in a different way (no axes, no legend). The <code>terra</code> package automatically detected that the raster had 3 bands and made the assumption that the bands corresponded to red, green and blue intensity values. If this assumption is not correct, you can use the <code>plotRGB()</code> function to get the desired plot.</p>
+<p>Rasters are nice objects to work with but sometimes it’s nice with more familiar R objects. You can easily convert <code>terra</code> objects to dataframes containing the geographic coordinates of all pixels and the related pixel values.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a>elev_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(elev, <span class="at">xy =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb78-2"><a href="#cb78-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(elev_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        x       y dem
+1 2644000 1228000 544
+2 2644025 1228000 544
+3 2644050 1228000 543
+4 2644075 1228000 544
+5 2644100 1228000 545
+6 2644125 1228000 546</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(elev_df, <span class="st">"export/dem.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Similarly, if you have a dataframe containing geographic coordinates located on a regular grid and associated values, you can easily convert it to a <code>terra</code> object with the help of the <code>rast()</code> function, by adding the argument <code>type = "xyz"</code>. This is often useful if you want to plot the predictions of a statistical model on a map, for example the distribution of a species. Here we add a new column to some dataframe filled with random values and we convert it to a 2-band raster.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a>elev_df<span class="sc">$</span>rand <span class="ot">&lt;-</span> <span class="fu">rnorm</span>(<span class="fu">nrow</span>(elev_df))</span>
+<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a>elev2 <span class="ot">&lt;-</span> <span class="fu">rast</span>(elev_df, <span class="at">type =</span> <span class="st">"xyz"</span>)</span>
+<span id="cb81-4"><a href="#cb81-4" aria-hidden="true" tabindex="-1"></a>elev2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>class       : SpatRaster 
+dimensions  : 604, 840, 2  (nrow, ncol, nlyr)
+resolution  : 25, 25  (x, y)
+extent      : 2643988, 2664988, 1212912, 1228012  (xmin, xmax, ymin, ymax)
+coord. ref. :  
+source(s)   : memory
+names       : dem,      rand 
+min values  : 425, -5.166262 
+max values  : 930,  4.479239 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb83"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(elev2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-29-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(elev, <span class="st">"export/dem1.tif"</span>)</span>
+<span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(elev2, <span class="st">"export/dem2.tif"</span>)</span>
+<span id="cb84-3"><a href="#cb84-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb84-4"><a href="#cb84-4" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(elev2[[<span class="dv">1</span>]], <span class="st">"export/dem2.tif"</span>, <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb84-5"><a href="#cb84-5" aria-hidden="true" tabindex="-1"></a><span class="fu">writeRaster</span>(elev2[[<span class="st">"dem"</span>]], <span class="st">"export/dem2.tif"</span>, <span class="at">overwrite =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="basic-geometric-computations" class="level3" data-number="6.3">
+<h3 data-number="6.3" class="anchored" data-anchor-id="basic-geometric-computations"><span class="header-section-number">6.3</span> Basic geometric computations</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb85"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_area</span>(muni)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Units: [m^2]
+[1] 26267403 14834107 11676584 10954968  9218391  7710103  6050585</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">st_length</span>(streets))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Units: [m]
+[1] 1915.1026  378.9425  345.9435 1836.5854  901.2759  232.4974</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lwgeom)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Linking to liblwgeom 3.0.0beta1 r16016, GEOS 3.11.0, PROJ 9.1.0</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_perimeter</span>(muni)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Units: [m]
+[1] 29717.62 17281.70 16758.24 15754.38 14897.75 15462.88 13398.87</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb93"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb93-1"><a href="#cb93-1" aria-hidden="true" tabindex="-1"></a>temp <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="st">"data/geodata.gpkg"</span>, <span class="st">"invalid"</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb93-2"><a href="#cb93-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(temp, <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-33-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_area</span>(temp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Units: [m^2]
+[1] 547988.3 200939.1      0.0</code></pre>
+</div>
+</div>
+<p>Why is this happening? We need to talk a bit about geometric validity…</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb96"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a>muni_centroid <span class="ot">&lt;-</span> <span class="fu">st_centroid</span>(muni)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in st_centroid.sf(muni): st_centroid assumes attributes are constant
+over geometries of x</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb98"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_coordinates</span>(muni_centroid)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        X       Y
+1 2657961 1217280
+2 2653276 1220227
+3 2657334 1221089
+4 2650683 1222874
+5 2655114 1223114
+6 2652705 1225584
+7 2650517 1225371</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb100"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">st_coordinates</span>(muni))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           X       Y L1 L2 L3
+[1,] 2654554 1217985  1  1  1
+[2,] 2654481 1218031  1  1  1
+[3,] 2654492 1218051  1  1  1
+[4,] 2654495 1218063  1  1  1
+[5,] 2654493 1218067  1  1  1
+[6,] 2654494 1218083  1  1  1</code></pre>
+</div>
+</div>
+<p>Centroid outside, st_point_on_surface()</p>
+</section>
+<section id="geometric-validity" class="level3" data-number="6.4">
+<h3 data-number="6.4" class="anchored" data-anchor-id="geometric-validity"><span class="header-section-number">6.4</span> Geometric validity</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb102"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a>temp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 3 features and 0 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: 2656313 ymin: 1219730 xmax: 2659317 ymax: 1221618
+Projected CRS: CH1903+ / LV95
+                            geom
+1 POLYGON ((2656382 1221396, ...
+2 POLYGON ((2656903 1220285, ...
+3 POLYGON ((2658317 1221618, ...</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb104"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb104-1"><a href="#cb104-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_is_valid</span>(temp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1]  TRUE  TRUE FALSE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb106"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb106-1"><a href="#cb106-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_is_valid</span>(temp, <span class="at">reason =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Valid Geometry"                        
+[2] "Valid Geometry"                        
+[3] "Self-intersection[2658817 1221117.875]"</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb108"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb108-1"><a href="#cb108-1" aria-hidden="true" tabindex="-1"></a>temp_valid <span class="ot">&lt;-</span> <span class="fu">st_make_valid</span>(temp)</span>
+<span id="cb108-2"><a href="#cb108-2" aria-hidden="true" tabindex="-1"></a>temp_valid</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 3 features and 0 fields
+Geometry type: GEOMETRY
+Dimension:     XY
+Bounding box:  xmin: 2656313 ymin: 1219730 xmax: 2659317 ymax: 1221618
+Projected CRS: CH1903+ / LV95
+                            geom
+1 POLYGON ((2656382 1221396, ...
+2 POLYGON ((2656903 1220285, ...
+3 MULTIPOLYGON (((2658317 122...</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb110"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb110-1"><a href="#cb110-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_geometry_type</span>(temp_valid)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] POLYGON      POLYGON      MULTIPOLYGON
+18 Levels: GEOMETRY POINT LINESTRING POLYGON MULTIPOINT ... TRIANGLE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb112"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb112-1"><a href="#cb112-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_geometry_type</span>(temp_valid, <span class="at">by_geometry =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] GEOMETRY
+18 Levels: GEOMETRY POINT LINESTRING POLYGON MULTIPOINT ... TRIANGLE</code></pre>
+</div>
+</div>
+</section>
+<section id="vector-type-casting" class="level3" data-number="6.5">
+<h3 data-number="6.5" class="anchored" data-anchor-id="vector-type-casting"><span class="header-section-number">6.5</span> Vector type casting</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb114"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb114-1"><a href="#cb114-1" aria-hidden="true" tabindex="-1"></a>temp_multipoly <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_valid, <span class="at">to =</span> <span class="st">"MULTIPOLYGON"</span>)</span>
+<span id="cb114-2"><a href="#cb114-2" aria-hidden="true" tabindex="-1"></a><span class="fu">st_as_text</span>(<span class="fu">st_geometry</span>(temp_valid))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "POLYGON ((2656382 1221396, 2657007 1221587, 2657250 1221414, 2657389 1221014, 2656730 1220824, 2656313 1221084, 2656382 1221396))"                            
+[2] "POLYGON ((2656903 1220285, 2657441 1220077, 2657632 1220459, 2657754 1220129, 2657458 1219730, 2656903 1220285))"                                             
+[3] "MULTIPOLYGON (((2658317 1221618, 2658817 1221118, 2658317 1220618, 2658317 1221618)), ((2658817 1221118, 2659317 1221618, 2659317 1220618, 2658817 1221118)))"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb116"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb116-1"><a href="#cb116-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_as_text</span>(<span class="fu">st_geometry</span>(temp_multipoly))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "MULTIPOLYGON (((2656382 1221396, 2657007 1221587, 2657250 1221414, 2657389 1221014, 2656730 1220824, 2656313 1221084, 2656382 1221396)))"                     
+[2] "MULTIPOLYGON (((2656903 1220285, 2657441 1220077, 2657632 1220459, 2657754 1220129, 2657458 1219730, 2656903 1220285)))"                                      
+[3] "MULTIPOLYGON (((2658317 1221618, 2658817 1221118, 2658317 1220618, 2658317 1221618)), ((2658817 1221118, 2659317 1221618, 2659317 1220618, 2658817 1221118)))"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb118"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb118-1"><a href="#cb118-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_geometry_type</span>(temp_multipoly, <span class="at">by_geometry =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] MULTIPOLYGON
+18 Levels: GEOMETRY POINT LINESTRING POLYGON MULTIPOINT ... TRIANGLE</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb120"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb120-1"><a href="#cb120-1" aria-hidden="true" tabindex="-1"></a>temp_poly <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multipoly, <span class="at">to =</span> <span class="st">"POLYGON"</span>)</span>
+<span id="cb120-2"><a href="#cb120-2" aria-hidden="true" tabindex="-1"></a>temp_multiline <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multipoly, <span class="at">to =</span> <span class="st">"MULTILINESTRING"</span>)</span>
+<span id="cb120-3"><a href="#cb120-3" aria-hidden="true" tabindex="-1"></a>temp_line <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multiline, <span class="at">to =</span> <span class="st">"LINESTRING"</span>)</span>
+<span id="cb120-4"><a href="#cb120-4" aria-hidden="true" tabindex="-1"></a>temp_multipts <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multipoly, <span class="at">to =</span> <span class="st">"MULTIPOINT"</span>)</span>
+<span id="cb120-5"><a href="#cb120-5" aria-hidden="true" tabindex="-1"></a>temp_pts <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multipoly, <span class="at">to =</span> <span class="st">"POINT"</span>)</span>
+<span id="cb120-6"><a href="#cb120-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb120-7"><a href="#cb120-7" aria-hidden="true" tabindex="-1"></a>temp_poly</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 4 features and 0 fields
+Geometry type: POLYGON
+Dimension:     XY
+Bounding box:  xmin: 2656313 ymin: 1219730 xmax: 2659317 ymax: 1221618
+Projected CRS: CH1903+ / LV95
+                            geom
+1 POLYGON ((2656382 1221396, ...
+2 POLYGON ((2656903 1220285, ...
+3 POLYGON ((2658317 1221618, ...
+4 POLYGON ((2658817 1221118, ...</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb122"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb122-1"><a href="#cb122-1" aria-hidden="true" tabindex="-1"></a>temp_multiline</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 3 features and 0 fields
+Geometry type: MULTILINESTRING
+Dimension:     XY
+Bounding box:  xmin: 2656313 ymin: 1219730 xmax: 2659317 ymax: 1221618
+Projected CRS: CH1903+ / LV95
+                            geom
+1 MULTILINESTRING ((2656382 1...
+2 MULTILINESTRING ((2656903 1...
+3 MULTILINESTRING ((2658317 1...</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb124"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb124-1"><a href="#cb124-1" aria-hidden="true" tabindex="-1"></a>temp_line</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 4 features and 0 fields
+Geometry type: LINESTRING
+Dimension:     XY
+Bounding box:  xmin: 2656313 ymin: 1219730 xmax: 2659317 ymax: 1221618
+Projected CRS: CH1903+ / LV95
+                            geom
+1 LINESTRING (2656382 1221396...
+2 LINESTRING (2656903 1220285...
+3 LINESTRING (2658317 1221618...
+4 LINESTRING (2658817 1221118...</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb126"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true" tabindex="-1"></a>temp_multipts</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 3 features and 0 fields
+Geometry type: MULTIPOINT
+Dimension:     XY
+Bounding box:  xmin: 2656313 ymin: 1219730 xmax: 2659317 ymax: 1221618
+Projected CRS: CH1903+ / LV95
+                            geom
+1 MULTIPOINT ((2656382 122139...
+2 MULTIPOINT ((2656903 122028...
+3 MULTIPOINT ((2658317 122161...</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb128"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb128-1"><a href="#cb128-1" aria-hidden="true" tabindex="-1"></a>temp_pts</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Simple feature collection with 21 features and 0 fields
+Geometry type: POINT
+Dimension:     XY
+Bounding box:  xmin: 2656313 ymin: 1219730 xmax: 2659317 ymax: 1221618
+Projected CRS: CH1903+ / LV95
+First 10 features:
+                      geom
+1  POINT (2656382 1221396)
+2  POINT (2657007 1221587)
+3  POINT (2657250 1221414)
+4  POINT (2657389 1221014)
+5  POINT (2656730 1220824)
+6  POINT (2656313 1221084)
+7  POINT (2656382 1221396)
+8  POINT (2656903 1220285)
+9  POINT (2657441 1220077)
+10 POINT (2657632 1220459)</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb130"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb130-1"><a href="#cb130-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>))</span>
+<span id="cb130-2"><a href="#cb130-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_multipoly), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_multipoly))</span>
+<span id="cb130-3"><a href="#cb130-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_poly), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_poly))</span>
+<span id="cb130-4"><a href="#cb130-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_multiline), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_multiline))</span>
+<span id="cb130-5"><a href="#cb130-5" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_line), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_line))</span>
+<span id="cb130-6"><a href="#cb130-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_multipts), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_multipts), <span class="at">pch =</span> <span class="dv">16</span>)</span>
+<span id="cb130-7"><a href="#cb130-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_pts), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_pts), <span class="at">pch =</span> <span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-38-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb131"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb131-1"><a href="#cb131-1" aria-hidden="true" tabindex="-1"></a>sempach_multiline <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(muni[<span class="fu">which</span>(muni<span class="sc">$</span>name <span class="sc">==</span> <span class="st">"Sempach"</span>),], <span class="at">to =</span> <span class="st">"MULTILINESTRING"</span>)</span>
+<span id="cb131-2"><a href="#cb131-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(sempach_multiline), <span class="at">col =</span> <span class="st">"navy"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-39-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb132"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb132-1"><a href="#cb132-1" aria-hidden="true" tabindex="-1"></a>sempach_poly <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(sempach_multiline, <span class="at">to =</span> <span class="st">"POLYGON"</span>)</span>
+<span id="cb132-2"><a href="#cb132-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(sempach_poly), <span class="at">col =</span> <span class="st">"navy"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-39-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="callout-note callout callout-style-default no-icon callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Exercise (5 minutes)
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Create a new object containing only the polygon for Sursee, check its validity and compute its perimeter using the <code>st_length()</code> function, compare with the result of the <code>st_perimeter()</code> function.</p>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb133"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb133-1"><a href="#cb133-1" aria-hidden="true" tabindex="-1"></a>sursee_poly <span class="ot">&lt;-</span> muni[<span class="fu">which</span>(muni<span class="sc">$</span>name <span class="sc">==</span> <span class="st">"Sursee"</span>),]</span>
+<span id="cb133-2"><a href="#cb133-2" aria-hidden="true" tabindex="-1"></a>sursee_multiline <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(sursee_poly, <span class="at">to =</span> <span class="st">"MULTILINESTRING"</span>)</span>
+<span id="cb133-3"><a href="#cb133-3" aria-hidden="true" tabindex="-1"></a><span class="fu">st_length</span>(sursee_multiline)</span>
+<span id="cb133-4"><a href="#cb133-4" aria-hidden="true" tabindex="-1"></a><span class="fu">st_perimeter</span>(sursee_poly)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</div>
+</div>
+</section>
+<section id="spatial-predicates" class="level3" data-number="6.6">
+<h3 data-number="6.6" class="anchored" data-anchor-id="spatial-predicates"><span class="header-section-number">6.6</span> Spatial predicates</h3>
+</section>
+<section id="distance-operations" class="level3" data-number="6.7">
+<h3 data-number="6.7" class="anchored" data-anchor-id="distance-operations"><span class="header-section-number">6.7</span> Distance operations</h3>
+</section>
+<section id="aggregate-by-attributes" class="level3" data-number="6.8">
+<h3 data-number="6.8" class="anchored" data-anchor-id="aggregate-by-attributes"><span class="header-section-number">6.8</span> Aggregate by attributes</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb134"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb134-1"><a href="#cb134-1" aria-hidden="true" tabindex="-1"></a><span class="fu">aggregate</span>(pop_est <span class="sc">~</span> continent, <span class="at">FUN =</span> sum, <span class="at">data =</span> World, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                continent    pop_est
+1                  Africa  993321977
+2              Antarctica       3802
+3                    Asia 4085852698
+4                  Europe  728131201
+5           North America  539350981
+6                 Oceania   33519610
+7 Seven seas (open ocean)        140
+8           South America  394355478</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb136"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb136-1"><a href="#cb136-1" aria-hidden="true" tabindex="-1"></a>world_agg <span class="ot">&lt;-</span> <span class="fu">aggregate</span>(World[<span class="st">"pop_est"</span>], <span class="fu">list</span>(World<span class="sc">$</span>continent), <span class="at">FUN =</span> sum, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb136-2"><a href="#cb136-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(world_agg[,<span class="st">"pop_est"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-41-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb137"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb137-1"><a href="#cb137-1" aria-hidden="true" tabindex="-1"></a>muni_agg <span class="ot">&lt;-</span> <span class="fu">st_union</span>(muni)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="great-circle-distances" class="level3" data-number="6.9">
+<h3 data-number="6.9" class="anchored" data-anchor-id="great-circle-distances"><span class="header-section-number">6.9</span> Great circle distances</h3>
+<p>st_distance, great circle distance calculations use by default spherical distances (s2_distance or s2_distance_matrix); if sf_use_s2() is FALSE, ellipsoidal distances are computed using st_geod_distance which uses function geod_inverse from GeographicLib (part of PROJ); see Karney, Charles FF, 2013, Algorithms for geodesics, Journal of Geodesy 87(1), 43–55</p>
+</section>
+</section>
+<section id="making-maps" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="making-maps"><span class="header-section-number">7</span> Making maps</h2>
+</section>
+<section id="more-help" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="more-help"><span class="header-section-number">8</span> More help</h2>
+<p>sf vignettes</p>
+<p>geocomp with R</p>
+<p>tmap book</p>
+</section>
+<section id="references" class="level2" data-number="9">
+<h2 data-number="9" class="anchored" data-anchor-id="references"><span class="header-section-number">9</span> References</h2>
+<p>Appelhans T., Detsch F., Reudenbach C., Woellauer S. (2022). mapview: Interactive Viewing of Spatial Data in R. R package version 2.11.0</p>
+<p>Bivand R. (2022) R Packages for Analyzing Spatial Data: A Comparative Case Study with Areal Data Geographical Analysis, 54(3), 488-518</p>
+<p>Giraud T. (2022). mapsf: Thematic Cartography. R package version 0.6.1</p>
+<p>Hijmans R. (2022). terra: Spatial Data Analysis. R package version 1.6-47</p>
+<p>Pebesma E. (2018). Simple Features for R: Standardized Support for Spatial Vector Data. The R Journal, 10(1), 439-446</p>
+<p>Pebesma E., Bivand R. 2022</p>
+<p>Tennekes M. (2018). tmap: Thematic Maps in R. Journal of Statistical Software, 84(6), 1-39</p>
+<p>Tennekes M., Nowosad J. (2021). Elegant and informative maps with tmap. https://r-tmap.github.io/tmap-book/index.html</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
