@@ -793,7 +793,7 @@ Projected CRS: CH1903+ / LV95
 7 1103     Sursee   10382 MULTIPOLYGON (((2648801 122...</code></pre>
 </div>
 </div>
-<p>We see some basic information about the data set, and the first features are shown as well with all the attributes.</p>
+<p>We see some basic information about the data set, and the first features are shown as well with all the attributes. The municipalities data set in an extract of the swissBOUNDARIES3D provided by Swisstopo, the streets data set is an extract of the swissTLM3D also provided by Swisstopo.</p>
 </section>
 <section id="importing-a-shapefile" class="level4" data-number="6.1.2">
 <h4 data-number="6.1.2" class="anchored" data-anchor-id="importing-a-shapefile"><span class="header-section-number">6.1.2</span> Importing a Shapefile</h4>
@@ -838,7 +838,7 @@ Projected CRS: CH1903+ / LV95
 </div>
 <p>After that we need to import the data with a query, using again the <code>st_read()</code> function. Note that the first argument of the function must be the database connection object. The first possibility consists of importing the whole layer (called table in the database lingo) with all its attributes. This is what we do for the <code>cantons1</code> data set. We need to use the <code>Id()</code> function to specify the location of the table inside the database. In a PostgreSQL database, a schema is a bit like a folder where we store tables, this allows us to implement some structure inside the database. In our case the table <code>cantonal_boundaries_ch</code> is stored inside the schema <code>perimeter</code>. Note that we don’t need the <code>Id()</code> function if the table are stored in the <code>public</code> schema.</p>
 <p>We can also specify a SQL query to import the data, like for the <code>cantons2</code> data set. Using this kind of query, we are fully flexible. We can for example specify the attributes we want to import, specific data filters, we can even join different tables together (by attributes or even spatially). Once again we have to specify the schema, but this is done a bit differently.</p>
-<p>Once we have our <code>sf</code> objects, we still need to disconnect the database.</p>
+<p>Once we have our <code>sf</code> objects, we still need to disconnect the database. The cantonal_boundaries_ch data set contains all the cantonal boundaries in Switzerland. The data is provided by Swisstopo (swissBOUNDARIES3D).</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load cantonal boundaries</span></span>
 <span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>cantons1 <span class="ot">&lt;-</span> <span class="fu">st_read</span>(dbcon, <span class="at">layer =</span> <span class="fu">Id</span>(<span class="at">schema =</span> <span class="st">"perimeter"</span>, <span class="at">table =</span> <span class="st">"cantonal_boundaries_ch"</span>))</span>
@@ -856,7 +856,7 @@ Projected CRS: CH1903+ / LV95
 </section>
 <section id="importing-a-csv-file-with-coordinates" class="level4" data-number="6.1.4">
 <h4 data-number="6.1.4" class="anchored" data-anchor-id="importing-a-csv-file-with-coordinates"><span class="header-section-number">6.1.4</span> Importing a CSV file with coordinates</h4>
-<p>If you have a table containing coordinates of point data (e.g.&nbsp;sites or bird sightings), you should use the <code>st_as_sf()</code> function. The first argument should be the dataframe containing the data, and you also need to specify the names of the columns containing the geographic coordinates, and the CRS used.</p>
+<p>If you have a table containing coordinates of point data (e.g.&nbsp;sites or bird sightings), you should use the <code>st_as_sf()</code> function. The first argument should be the dataframe containing the data, and you also need to specify the names of the columns containing the geographic coordinates, and the CRS used. This data set was extracted from the bird sightings database of the Swiss Ornithological Institute.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>obs <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"data/observations.csv"</span>)</span>
 <span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(obs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -931,6 +931,7 @@ Available layers:
 <section id="reading-and-writing-raster-data" class="level3" data-number="6.2">
 <h3 data-number="6.2" class="anchored" data-anchor-id="reading-and-writing-raster-data"><span class="header-section-number">6.2</span> Reading and writing raster data</h3>
 <p>As we saw earlier, we need another package to import raster data sets. The <code>rast()</code> function from the <code>terra</code> package is what we need. It doesn’t matter if our raster is continuous, discrete, or contains several bands, the <code>rast()</code> function will create the correct <code>terra</code> object. However don’t forget that it’s only a pointer to the data set, the full raster is not imported into memory.</p>
+<p>The digital elevation model is an extract of the DHM25 data set provided by Swisstopo, the orthophoto is an extract of the SWISSIMAGE data set also provided by Swisstopo.</p>
 <div class="cell">
 
 </div>

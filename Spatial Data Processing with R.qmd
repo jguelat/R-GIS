@@ -353,7 +353,7 @@ streets <- st_read("data/geodata.gpkg", "streets", quiet = TRUE)
 muni
 ```
 
-We see some basic information about the data set, and the first features are shown as well with all the attributes.
+We see some basic information about the data set, and the first features are shown as well with all the attributes. The municipalities data set in an extract of the swissBOUNDARIES3D provided by Swisstopo, the streets data set is an extract of the swissTLM3D also provided by Swisstopo.
 
 #### Importing a Shapefile
 
@@ -392,7 +392,7 @@ After that we need to import the data with a query, using again the `st_read()` 
 
 We can also specify a SQL query to import the data, like for the `cantons2` data set. Using this kind of query, we are fully flexible. We can for example specify the attributes we want to import, specific data filters, we can even join different tables together (by attributes or even spatially). Once again we have to specify the schema, but this is done a bit differently.
 
-Once we have our `sf` objects, we still need to disconnect the database.
+Once we have our `sf` objects, we still need to disconnect the database. The cantonal_boundaries_ch data set contains all the cantonal boundaries in Switzerland. The data is provided by Swisstopo (swissBOUNDARIES3D).
 
 ```{r}
 #| eval: false
@@ -412,7 +412,7 @@ cantons2
 
 #### Importing a CSV file with coordinates
 
-If you have a table containing coordinates of point data (e.g. sites or bird sightings), you should use the `st_as_sf()` function. The first argument should be the dataframe containing the data, and you also need to specify the names of the columns containing the geographic coordinates, and the CRS used.
+If you have a table containing coordinates of point data (e.g. sites or bird sightings), you should use the `st_as_sf()` function. The first argument should be the dataframe containing the data, and you also need to specify the names of the columns containing the geographic coordinates, and the CRS used. This data set was extracted from the bird sightings database of the Swiss Ornithological Institute.
 
 ```{r}
 obs <- read.csv("data/observations.csv")
@@ -453,6 +453,8 @@ Please don't!
 ### Reading and writing raster data
 
 As we saw earlier, we need another package to import raster data sets. The `rast()` function from the `terra` package is what we need. It doesn't matter if our raster is continuous, discrete, or contains several bands, the `rast()` function will create the correct `terra` object. However don't forget that it's only a pointer to the data set, the full raster is not imported into memory.
+
+The digital elevation model is an extract of the DHM25 data set provided by Swisstopo, the orthophoto is an extract of the SWISSIMAGE data set also provided by Swisstopo.
 
 ```{r}
 #| echo: false
