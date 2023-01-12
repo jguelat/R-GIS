@@ -510,33 +510,53 @@ writeRaster(elev2[["dem"]], "export/dem2.tif", overwrite = TRUE)
 
 ### Basic geometric computations
 
+In this section we'll see how to perform some basic geometric computations on spatial data. For example let's how we can compute the area of polygons of the length of lines.
+
 ```{r}
 st_area(muni)
 head(st_length(streets))
 ```
+
+Note that the results always have a unit of measurement. This is a feature that is provided by `sf` and will occur will all functions giving some sort of measurement. This is compatible with the `units` package which allows easy conversions between different unit types. However this can sometimes be a problem if you need a "raw" value. In this case you can use the `as.numeric()` function to remove the units.
+
+For some strange reason, there is no function in `sf` to compute the perimeter of polygons. To do that you'll need the `st_perimeter()` function in the `lwgeom` package which gives access to some functions available in the PostGIS database.
 
 ```{r}
 library(lwgeom)
 st_perimeter(muni)
 ```
 
+Computing the centroid of polygons is another useful operation that is easily computed using the `st_centroid()` function.
 ```{r}
 muni_centroid <- st_centroid(muni)
+plot(st_geometry(muni))
+plot(st_geometry(muni_centroid), add = TRUE)
+```
+
+Sometimes we also need to know the coordinates of the `sf` objects we're using. For points we of course get the coordinates of the points, for lines and polygons we get the coordinates of the vertices, with additional columns showing how to reconstruct the features.
+
+```{r}
 st_coordinates(muni_centroid)
 head(st_coordinates(muni))
 ```
 
-Centroid outside, st_point_on_surface()
+Centroid can be used to place labels inside polygons, but don't forget that polygons with strange shapes may not contain their centroid. If for some reason you need to be sure to have the point inside the polygon, use the `st_point_on_surface()` function.
+
+Unfortunately geometric computations are not always that easy... Let's have a look at another example. We load another polygon layer and try to compute the area of each polygon.
 
 ```{r}
-temp <- st_read("data/geodata.gpkg", "invalid", quiet = TRUE)
+temp <- st_read("data/geodata.gpkg", "wtf", quiet = TRUE)
 plot(temp, col = 1:nrow(temp))
 st_area(temp)
 ```
 
-Why is this happening? We need to talk a bit about geometric validity...
+Oops, these polygons look big enough but one of them seems to have an area of 0... Why is this happening? We need to talk a bit about geometric validity...
 
 ### Geometric validity
+
+When we had a look a the vector data model, we discovered the Simple Feature standard but we forgot an important part: geometric validity. Validity is defined a bit differently depending on the geometry engine used for the computations. First the good news: points are always valid! Lines are always valid for the GEOS engine used by `sf` but they are considered invalid by QGIS if they have self-intersections (such lines are called non-simple). Polygons are definitely invalid if they have self-intersections (like our example). The other invalid cases are shown on this website: <https://postgis.net/docs/using_postgis_dbmanagement.html#Valid_Geometry>. Using invalid geometries can be problematic for some analyses, such as computing areas.
+
+Normally we should expect official data sets to be valid but this is often not the case. You can check the validity of each feature using the `st_is_valid()` function. If you want a short description of the problems, you can add the argument `reason = TRUE`.
 
 ```{r}
 temp
@@ -544,14 +564,21 @@ st_is_valid(temp)
 st_is_valid(temp, reason = TRUE)
 ```
 
+If there are only a few invalid features, we can correct them manually in QGIS. But sometimes this is not feasible and we need some automatic way of correcting. This is where the `st_make_valid()` function shines. Even though it's fully automatic, it will perform the appropriate changes 99% of the time.
+
 ```{r}
 temp_valid <- st_make_valid(temp)
+st_is_valid(temp_valid)
 temp_valid
 st_geometry_type(temp_valid)
 st_geometry_type(temp_valid, by_geometry = FALSE)
 ```
 
+When we look at the corrected data set, we see that the invalid polygon was converted to a multipolygon. We can also check it using the `st_geometry_type()` function. This is however a problem since we normally don't want a data set with mixed geometry types. When we use the `by_geometry = FALSE` argument, we see that `sf` is now using a generic GEOMETRY type for the data set. The solution would be to convert all the other polygons to multipolygons.
+
 ### Vector type casting
+
+Changing the type of vector features is done with the `st_cast()` function. We can now solve our previous problem and convert everything to multipolygons (the existing multipolygon will be left untouched). Using the `st_as_text()` function we can see the WKT representation of the features geometry, and confirm that we're now using the same vector type for all features.
 
 ```{r}
 temp_multipoly <- st_cast(temp_valid, to = "MULTIPOLYGON")
@@ -559,6 +586,8 @@ st_as_text(st_geometry(temp_valid))
 st_as_text(st_geometry(temp_multipoly))
 st_geometry_type(temp_multipoly, by_geometry = FALSE)
 ```
+
+We can go a bit further and convert our multipolygons to other types... Note: for some reasons, it is not possible to convert a multipolygon directly to a line. You'll need to convert it to a multiline object first.
 
 ```{r}
 temp_poly <- st_cast(temp_multipoly, to = "POLYGON")
@@ -581,6 +610,8 @@ plot(st_geometry(temp_line), col = 1:nrow(temp_line))
 plot(st_geometry(temp_multipts), col = 1:nrow(temp_multipts), pch = 16)
 plot(st_geometry(temp_pts), col = 1:nrow(temp_pts), pch = 16)
 ```
+
+It is of course not possible to convert points to polygons, but if you have a line or multiline geometry forming a closed ring, we can easily convert it to a polygon.
 
 ```{r}
 sempach_multiline <- st_cast(muni[which(muni$name == "Sempach"),], to = "MULTILINESTRING")
@@ -605,6 +636,46 @@ st_perimeter(sursee_poly)
 :::
 
 ### Spatial predicates
+
+Topology describes the spatial relationships between vector objects. Two features can for example intersect, or one feature can contain another. The existence of such relationships between features is tested by functions called spatial (binary) predicates. Many are available in the `sf` package, use `?geos_binary_pred` if you want to see the full list.
+
+::: {.callout-important}
+When using spatial predicates you must be sure that both objects use the same CRS.
+:::
+
+We can for example easily test which bird sightings are in Sempach.
+
+```{r}
+sempach <- muni[muni$name=="Sempach",]
+obs_in_sempach <- st_intersects(obs, sempach)
+obs_in_sempach
+
+obs_in_sempach <- st_intersects(obs, sempach, sparse = FALSE)
+tail(obs_in_sempach)
+sum(obs_in_sempach)
+```
+
+```{r}
+obs_not_in_sempach <- st_disjoint(obs, sempach, sparse = FALSE)
+sum(obs_not_in_sempach)
+```
+
+```{r}
+soi <- st_as_sfc("POINT(2657271 1219754)", crs = 2056)
+obs_within_1000m <- st_is_within_distance(soi, obs, dist = 1000)
+obs_within_1000m
+```
+
+
+```{r}
+muni_extract <- muni[6:7,]
+highways <- streets[streets$type == 2,]
+st_intersects(muni_extract, highways)
+```
+
+`st_relate()`
+
+### Spatial subsetting
 
 ### Distance operations
 
@@ -644,6 +715,8 @@ plot(st_geometry(world_proj), extent = extent, col = "grey90")
 plot(part, add = TRUE, lwd = 2, col = "red")
 plot(st_geometry(pt1_proj), add = TRUE, pch = 16, col = "red")
 plot(st_geometry(pt2_proj), add = TRUE, pch = 16, col = "red")
+
+rm(tmp1, tmp2, gcLine, world_proj, pt1_proj, pt2_proj, gcLine_proj, pt3, pt4, part, extent)
 ```
 
 ### Aggregate by attributes
@@ -656,9 +729,16 @@ plot(world_agg[,"pop_est"])
 muni_agg <- st_union(muni)
 ```
 
-### Great circle distances
+### Summarizing rasters
 
-st_distance, great circle distance calculations use by default spherical distances (s2_distance or s2_distance_matrix); if sf_use_s2() is FALSE, ellipsoidal distances are computed using st_geod_distance which uses function geod_inverse from GeographicLib (part of PROJ); see Karney, Charles FF, 2013, Algorithms for geodesics, Journal of Geodesy 87(1), 43--55
+Functions with "" memory efficient, own functions possible
+
+```{r}
+global(elev, fun = "max")
+hist(elev)
+
+```
+
 
 ## Making maps
 

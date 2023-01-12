@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Dr.&nbsp;Jérôme Guélat">
-<meta name="dcterms.date" content="2023-01-11">
+<meta name="dcterms.date" content="2023-01-12">
 
 <title>Spatial Data Processing with R</title>
 <style>
@@ -136,7 +136,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">January 11, 2023</p>
+        <p class="date">January 12, 2023</p>
       </div>
     </div>
     
@@ -167,9 +167,10 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   <li><a href="#geometric-validity" id="toc-geometric-validity" class="nav-link" data-scroll-target="#geometric-validity"><span class="toc-section-number">6.4</span>  Geometric validity</a></li>
   <li><a href="#vector-type-casting" id="toc-vector-type-casting" class="nav-link" data-scroll-target="#vector-type-casting"><span class="toc-section-number">6.5</span>  Vector type casting</a></li>
   <li><a href="#spatial-predicates" id="toc-spatial-predicates" class="nav-link" data-scroll-target="#spatial-predicates"><span class="toc-section-number">6.6</span>  Spatial predicates</a></li>
-  <li><a href="#distance-operations" id="toc-distance-operations" class="nav-link" data-scroll-target="#distance-operations"><span class="toc-section-number">6.7</span>  Distance operations</a></li>
-  <li><a href="#aggregate-by-attributes" id="toc-aggregate-by-attributes" class="nav-link" data-scroll-target="#aggregate-by-attributes"><span class="toc-section-number">6.8</span>  Aggregate by attributes</a></li>
-  <li><a href="#great-circle-distances" id="toc-great-circle-distances" class="nav-link" data-scroll-target="#great-circle-distances"><span class="toc-section-number">6.9</span>  Great circle distances</a></li>
+  <li><a href="#spatial-subsetting" id="toc-spatial-subsetting" class="nav-link" data-scroll-target="#spatial-subsetting"><span class="toc-section-number">6.7</span>  Spatial subsetting</a></li>
+  <li><a href="#distance-operations" id="toc-distance-operations" class="nav-link" data-scroll-target="#distance-operations"><span class="toc-section-number">6.8</span>  Distance operations</a></li>
+  <li><a href="#aggregate-by-attributes" id="toc-aggregate-by-attributes" class="nav-link" data-scroll-target="#aggregate-by-attributes"><span class="toc-section-number">6.9</span>  Aggregate by attributes</a></li>
+  <li><a href="#summarizing-rasters" id="toc-summarizing-rasters" class="nav-link" data-scroll-target="#summarizing-rasters"><span class="toc-section-number">6.10</span>  Summarizing rasters</a></li>
   </ul></li>
   <li><a href="#making-maps" id="toc-making-maps" class="nav-link" data-scroll-target="#making-maps"><span class="toc-section-number">7</span>  Making maps</a></li>
   <li><a href="#more-help" id="toc-more-help" class="nav-link" data-scroll-target="#more-help"><span class="toc-section-number">8</span>  More help</a></li>
@@ -759,7 +760,7 @@ Available layers:
 2      landcover     Multi Polygon     1038      2 CH1903+ / LV95
 3      buildings     Multi Polygon    14125      2 CH1903+ / LV95
 4 municipalities     Multi Polygon        7      3 CH1903+ / LV95
-5        invalid           Polygon        3      0 CH1903+ / LV95</code></pre>
+5            wtf           Polygon        3      0 CH1903+ / LV95</code></pre>
 </div>
 </div>
 <p>You should not always trust the reported number of features. Some GIS format such as the GeoPackage report this number, some don’t. If the GeoPackage was produced by a software that doesn’t properly implement the standard, the reported number of features can be wrong (but this shouldn’t have any other bad consequence). If you want to be sure to get the correct number, you can use the <code>do_count = TRUE</code> argument of the <code>st_layers()</code> function, but this will be slower.</p>
@@ -1023,6 +1024,7 @@ max values  : 930,  4.479239 </code></pre>
 </section>
 <section id="basic-geometric-computations" class="level3" data-number="6.3">
 <h3 data-number="6.3" class="anchored" data-anchor-id="basic-geometric-computations"><span class="header-section-number">6.3</span> Basic geometric computations</h3>
+<p>In this section we’ll see how to perform some basic geometric computations on spatial data. For example let’s how we can compute the area of polygons of the length of lines.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_area</span>(muni)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -1035,6 +1037,8 @@ max values  : 930,  4.479239 </code></pre>
 [1] 1915.1026  378.9425  345.9435 1836.5854  901.2759  232.4974</code></pre>
 </div>
 </div>
+<p>Note that the results always have a unit of measurement. This is a feature that is provided by <code>sf</code> and will occur will all functions giving some sort of measurement. This is compatible with the <code>units</code> package which allows easy conversions between different unit types. However this can sometimes be a problem if you need a “raw” value. In this case you can use the <code>as.numeric()</code> function to remove the units.</p>
+<p>For some strange reason, there is no function in <code>sf</code> to compute the perimeter of polygons. To do that you’ll need the <code>st_perimeter()</code> function in the <code>lwgeom</code> package which gives access to some functions available in the PostGIS database.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lwgeom)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
@@ -1046,13 +1050,22 @@ max values  : 930,  4.479239 </code></pre>
 [1] 29717.62 17281.70 16758.24 15754.38 14897.75 15462.88 13398.87</code></pre>
 </div>
 </div>
+<p>Computing the centroid of polygons is another useful operation that is easily computed using the <code>st_centroid()</code> function.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a>muni_centroid <span class="ot">&lt;-</span> <span class="fu">st_centroid</span>(muni)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning in st_centroid.sf(muni): st_centroid assumes attributes are constant
 over geometries of x</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb96"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_coordinates</span>(muni_centroid)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb96"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(muni))</span>
+<span id="cb96-2"><a href="#cb96-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(muni_centroid), <span class="at">add =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-34-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Sometimes we also need to know the coordinates of the <code>sf</code> objects we’re using. For points we of course get the coordinates of the points, for lines and polygons we get the coordinates of the vertices, with additional columns showing how to reconstruct the features.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb97"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_coordinates</span>(muni_centroid)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>        X       Y
 1 2657961 1217280
@@ -1063,7 +1076,7 @@ over geometries of x</code></pre>
 6 2652705 1225584
 7 2650517 1225371</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb98"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">st_coordinates</span>(muni))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb99"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">st_coordinates</span>(muni))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>           X       Y L1 L2 L3
 [1,] 2654554 1217985  1  1  1
@@ -1074,25 +1087,28 @@ over geometries of x</code></pre>
 [6,] 2654494 1218083  1  1  1</code></pre>
 </div>
 </div>
-<p>Centroid outside, st_point_on_surface()</p>
+<p>Centroid can be used to place labels inside polygons, but don’t forget that polygons with strange shapes may not contain their centroid. If for some reason you need to be sure to have the point inside the polygon, use the <code>st_point_on_surface()</code> function.</p>
+<p>Unfortunately geometric computations are not always that easy… Let’s have a look at another example. We load another polygon layer and try to compute the area of each polygon.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb100"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb100-1"><a href="#cb100-1" aria-hidden="true" tabindex="-1"></a>temp <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="st">"data/geodata.gpkg"</span>, <span class="st">"invalid"</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb100-2"><a href="#cb100-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(temp, <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb101"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a>temp <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="st">"data/geodata.gpkg"</span>, <span class="st">"wtf"</span>, <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb101-2"><a href="#cb101-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(temp, <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-35-1.png" class="img-fluid" width="672"></p>
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-36-1.png" class="img-fluid" width="672"></p>
 </div>
-<div class="sourceCode cell-code" id="cb101"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_area</span>(temp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb102"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_area</span>(temp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Units: [m^2]
 [1] 547988.3 200939.1      0.0</code></pre>
 </div>
 </div>
-<p>Why is this happening? We need to talk a bit about geometric validity…</p>
+<p>Oops, these polygons look big enough but one of them seems to have an area of 0… Why is this happening? We need to talk a bit about geometric validity…</p>
 </section>
 <section id="geometric-validity" class="level3" data-number="6.4">
 <h3 data-number="6.4" class="anchored" data-anchor-id="geometric-validity"><span class="header-section-number">6.4</span> Geometric validity</h3>
+<p>When we had a look a the vector data model, we discovered the Simple Feature standard but we forgot an important part: geometric validity. Validity is defined a bit differently depending on the geometry engine used for the computations. First the good news: points are always valid! Lines are always valid for the GEOS engine used by <code>sf</code> but they are considered invalid by QGIS if they have self-intersections (such lines are called non-simple). Polygons are definitely invalid if they have self-intersections (like our example). The other invalid cases are shown on this website: <a href="https://postgis.net/docs/using_postgis_dbmanagement.html#Valid_Geometry" class="uri">https://postgis.net/docs/using_postgis_dbmanagement.html#Valid_Geometry</a>. Using invalid geometries can be problematic for some analyses, such as computing areas.</p>
+<p>Normally we should expect official data sets to be valid but this is often not the case. You can check the validity of each feature using the <code>st_is_valid()</code> function. If you want a short description of the problems, you can add the argument <code>reason = TRUE</code>.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb103"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb103-1"><a href="#cb103-1" aria-hidden="true" tabindex="-1"></a>temp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb104"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb104-1"><a href="#cb104-1" aria-hidden="true" tabindex="-1"></a>temp</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Simple feature collection with 3 features and 0 fields
 Geometry type: POLYGON
@@ -1104,20 +1120,25 @@ Projected CRS: CH1903+ / LV95
 2 POLYGON ((2656903 1220285, ...
 3 POLYGON ((2658317 1221618, ...</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb105"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb105-1"><a href="#cb105-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_is_valid</span>(temp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb106"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb106-1"><a href="#cb106-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_is_valid</span>(temp)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1]  TRUE  TRUE FALSE</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb107"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb107-1"><a href="#cb107-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_is_valid</span>(temp, <span class="at">reason =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb108"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb108-1"><a href="#cb108-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_is_valid</span>(temp, <span class="at">reason =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Valid Geometry"                        
 [2] "Valid Geometry"                        
 [3] "Self-intersection[2658817 1221117.875]"</code></pre>
 </div>
 </div>
+<p>If there are only a few invalid features, we can correct them manually in QGIS. But sometimes this is not feasible and we need some automatic way of correcting. This is where the <code>st_make_valid()</code> function shines. Even though it’s fully automatic, it will perform the appropriate changes 99% of the time.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb109"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb109-1"><a href="#cb109-1" aria-hidden="true" tabindex="-1"></a>temp_valid <span class="ot">&lt;-</span> <span class="fu">st_make_valid</span>(temp)</span>
-<span id="cb109-2"><a href="#cb109-2" aria-hidden="true" tabindex="-1"></a>temp_valid</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb110"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb110-1"><a href="#cb110-1" aria-hidden="true" tabindex="-1"></a>temp_valid <span class="ot">&lt;-</span> <span class="fu">st_make_valid</span>(temp)</span>
+<span id="cb110-2"><a href="#cb110-2" aria-hidden="true" tabindex="-1"></a><span class="fu">st_is_valid</span>(temp_valid)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] TRUE TRUE TRUE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb112"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb112-1"><a href="#cb112-1" aria-hidden="true" tabindex="-1"></a>temp_valid</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Simple feature collection with 3 features and 0 fields
 Geometry type: GEOMETRY
@@ -1129,48 +1150,51 @@ Projected CRS: CH1903+ / LV95
 2 POLYGON ((2656903 1220285, ...
 3 MULTIPOLYGON (((2658317 122...</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb111"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb111-1"><a href="#cb111-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_geometry_type</span>(temp_valid)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb114"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb114-1"><a href="#cb114-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_geometry_type</span>(temp_valid)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] POLYGON      POLYGON      MULTIPOLYGON
 18 Levels: GEOMETRY POINT LINESTRING POLYGON MULTIPOINT ... TRIANGLE</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb113"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb113-1"><a href="#cb113-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_geometry_type</span>(temp_valid, <span class="at">by_geometry =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb116"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb116-1"><a href="#cb116-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_geometry_type</span>(temp_valid, <span class="at">by_geometry =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] GEOMETRY
 18 Levels: GEOMETRY POINT LINESTRING POLYGON MULTIPOINT ... TRIANGLE</code></pre>
 </div>
 </div>
+<p>When we look at the corrected data set, we see that the invalid polygon was converted to a multipolygon. We can also check it using the <code>st_geometry_type()</code> function. This is however a problem since we normally don’t want a data set with mixed geometry types. When we use the <code>by_geometry = FALSE</code> argument, we see that <code>sf</code> is now using a generic GEOMETRY type for the data set. The solution would be to convert all the other polygons to multipolygons.</p>
 </section>
 <section id="vector-type-casting" class="level3" data-number="6.5">
 <h3 data-number="6.5" class="anchored" data-anchor-id="vector-type-casting"><span class="header-section-number">6.5</span> Vector type casting</h3>
+<p>Changing the type of vector features is done with the <code>st_cast()</code> function. We can now solve our previous problem and convert everything to multipolygons (the existing multipolygon will be left untouched). Using the <code>st_as_text()</code> function we can see the WKT representation of the features geometry, and confirm that we’re now using the same vector type for all features.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb115"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb115-1"><a href="#cb115-1" aria-hidden="true" tabindex="-1"></a>temp_multipoly <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_valid, <span class="at">to =</span> <span class="st">"MULTIPOLYGON"</span>)</span>
-<span id="cb115-2"><a href="#cb115-2" aria-hidden="true" tabindex="-1"></a><span class="fu">st_as_text</span>(<span class="fu">st_geometry</span>(temp_valid))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb118"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb118-1"><a href="#cb118-1" aria-hidden="true" tabindex="-1"></a>temp_multipoly <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_valid, <span class="at">to =</span> <span class="st">"MULTIPOLYGON"</span>)</span>
+<span id="cb118-2"><a href="#cb118-2" aria-hidden="true" tabindex="-1"></a><span class="fu">st_as_text</span>(<span class="fu">st_geometry</span>(temp_valid))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "POLYGON ((2656382 1221396, 2657007 1221587, 2657250 1221414, 2657389 1221014, 2656730 1220824, 2656313 1221084, 2656382 1221396))"                            
 [2] "POLYGON ((2656903 1220285, 2657441 1220077, 2657632 1220459, 2657754 1220129, 2657458 1219730, 2656903 1220285))"                                             
 [3] "MULTIPOLYGON (((2658317 1221618, 2658817 1221118, 2658317 1220618, 2658317 1221618)), ((2658817 1221118, 2659317 1221618, 2659317 1220618, 2658817 1221118)))"</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb117"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb117-1"><a href="#cb117-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_as_text</span>(<span class="fu">st_geometry</span>(temp_multipoly))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb120"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb120-1"><a href="#cb120-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_as_text</span>(<span class="fu">st_geometry</span>(temp_multipoly))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "MULTIPOLYGON (((2656382 1221396, 2657007 1221587, 2657250 1221414, 2657389 1221014, 2656730 1220824, 2656313 1221084, 2656382 1221396)))"                     
 [2] "MULTIPOLYGON (((2656903 1220285, 2657441 1220077, 2657632 1220459, 2657754 1220129, 2657458 1219730, 2656903 1220285)))"                                      
 [3] "MULTIPOLYGON (((2658317 1221618, 2658817 1221118, 2658317 1220618, 2658317 1221618)), ((2658817 1221118, 2659317 1221618, 2659317 1220618, 2658817 1221118)))"</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb119"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb119-1"><a href="#cb119-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_geometry_type</span>(temp_multipoly, <span class="at">by_geometry =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb122"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb122-1"><a href="#cb122-1" aria-hidden="true" tabindex="-1"></a><span class="fu">st_geometry_type</span>(temp_multipoly, <span class="at">by_geometry =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] MULTIPOLYGON
 18 Levels: GEOMETRY POINT LINESTRING POLYGON MULTIPOINT ... TRIANGLE</code></pre>
 </div>
 </div>
+<p>We can go a bit further and convert our multipolygons to other types… Note: for some reasons, it is not possible to convert a multipolygon directly to a line. You’ll need to convert it to a multiline object first.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb121"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb121-1"><a href="#cb121-1" aria-hidden="true" tabindex="-1"></a>temp_poly <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multipoly, <span class="at">to =</span> <span class="st">"POLYGON"</span>)</span>
-<span id="cb121-2"><a href="#cb121-2" aria-hidden="true" tabindex="-1"></a>temp_multiline <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multipoly, <span class="at">to =</span> <span class="st">"MULTILINESTRING"</span>)</span>
-<span id="cb121-3"><a href="#cb121-3" aria-hidden="true" tabindex="-1"></a>temp_line <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multiline, <span class="at">to =</span> <span class="st">"LINESTRING"</span>)</span>
-<span id="cb121-4"><a href="#cb121-4" aria-hidden="true" tabindex="-1"></a>temp_multipts <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multipoly, <span class="at">to =</span> <span class="st">"MULTIPOINT"</span>)</span>
-<span id="cb121-5"><a href="#cb121-5" aria-hidden="true" tabindex="-1"></a>temp_pts <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multipoly, <span class="at">to =</span> <span class="st">"POINT"</span>)</span>
-<span id="cb121-6"><a href="#cb121-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb121-7"><a href="#cb121-7" aria-hidden="true" tabindex="-1"></a>temp_poly</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb124"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb124-1"><a href="#cb124-1" aria-hidden="true" tabindex="-1"></a>temp_poly <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multipoly, <span class="at">to =</span> <span class="st">"POLYGON"</span>)</span>
+<span id="cb124-2"><a href="#cb124-2" aria-hidden="true" tabindex="-1"></a>temp_multiline <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multipoly, <span class="at">to =</span> <span class="st">"MULTILINESTRING"</span>)</span>
+<span id="cb124-3"><a href="#cb124-3" aria-hidden="true" tabindex="-1"></a>temp_line <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multiline, <span class="at">to =</span> <span class="st">"LINESTRING"</span>)</span>
+<span id="cb124-4"><a href="#cb124-4" aria-hidden="true" tabindex="-1"></a>temp_multipts <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multipoly, <span class="at">to =</span> <span class="st">"MULTIPOINT"</span>)</span>
+<span id="cb124-5"><a href="#cb124-5" aria-hidden="true" tabindex="-1"></a>temp_pts <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(temp_multipoly, <span class="at">to =</span> <span class="st">"POINT"</span>)</span>
+<span id="cb124-6"><a href="#cb124-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb124-7"><a href="#cb124-7" aria-hidden="true" tabindex="-1"></a>temp_poly</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Simple feature collection with 4 features and 0 fields
 Geometry type: POLYGON
@@ -1183,7 +1207,7 @@ Projected CRS: CH1903+ / LV95
 3 POLYGON ((2658317 1221618, ...
 4 POLYGON ((2658817 1221118, ...</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb123"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb123-1"><a href="#cb123-1" aria-hidden="true" tabindex="-1"></a>temp_multiline</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb126"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true" tabindex="-1"></a>temp_multiline</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Simple feature collection with 3 features and 0 fields
 Geometry type: MULTILINESTRING
@@ -1195,7 +1219,7 @@ Projected CRS: CH1903+ / LV95
 2 MULTILINESTRING ((2656903 1...
 3 MULTILINESTRING ((2658317 1...</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb125"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb125-1"><a href="#cb125-1" aria-hidden="true" tabindex="-1"></a>temp_line</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb128"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb128-1"><a href="#cb128-1" aria-hidden="true" tabindex="-1"></a>temp_line</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Simple feature collection with 4 features and 0 fields
 Geometry type: LINESTRING
@@ -1208,7 +1232,7 @@ Projected CRS: CH1903+ / LV95
 3 LINESTRING (2658317 1221618...
 4 LINESTRING (2658817 1221118...</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb127"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb127-1"><a href="#cb127-1" aria-hidden="true" tabindex="-1"></a>temp_multipts</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb130"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb130-1"><a href="#cb130-1" aria-hidden="true" tabindex="-1"></a>temp_multipts</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Simple feature collection with 3 features and 0 fields
 Geometry type: MULTIPOINT
@@ -1220,7 +1244,7 @@ Projected CRS: CH1903+ / LV95
 2 MULTIPOINT ((2656903 122028...
 3 MULTIPOINT ((2658317 122161...</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb129"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb129-1"><a href="#cb129-1" aria-hidden="true" tabindex="-1"></a>temp_pts</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb132"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb132-1"><a href="#cb132-1" aria-hidden="true" tabindex="-1"></a>temp_pts</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Simple feature collection with 21 features and 0 fields
 Geometry type: POINT
@@ -1240,27 +1264,28 @@ First 10 features:
 9  POINT (2657441 1220077)
 10 POINT (2657632 1220459)</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb131"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb131-1"><a href="#cb131-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>))</span>
-<span id="cb131-2"><a href="#cb131-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_multipoly), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_multipoly))</span>
-<span id="cb131-3"><a href="#cb131-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_poly), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_poly))</span>
-<span id="cb131-4"><a href="#cb131-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_multiline), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_multiline))</span>
-<span id="cb131-5"><a href="#cb131-5" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_line), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_line))</span>
-<span id="cb131-6"><a href="#cb131-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_multipts), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_multipts), <span class="at">pch =</span> <span class="dv">16</span>)</span>
-<span id="cb131-7"><a href="#cb131-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_pts), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_pts), <span class="at">pch =</span> <span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-39-1.png" class="img-fluid" width="672"></p>
-</div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb132"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb132-1"><a href="#cb132-1" aria-hidden="true" tabindex="-1"></a>sempach_multiline <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(muni[<span class="fu">which</span>(muni<span class="sc">$</span>name <span class="sc">==</span> <span class="st">"Sempach"</span>),], <span class="at">to =</span> <span class="st">"MULTILINESTRING"</span>)</span>
-<span id="cb132-2"><a href="#cb132-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(sempach_multiline), <span class="at">col =</span> <span class="st">"navy"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb134"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb134-1"><a href="#cb134-1" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">2</span>, <span class="dv">3</span>))</span>
+<span id="cb134-2"><a href="#cb134-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_multipoly), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_multipoly))</span>
+<span id="cb134-3"><a href="#cb134-3" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_poly), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_poly))</span>
+<span id="cb134-4"><a href="#cb134-4" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_multiline), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_multiline))</span>
+<span id="cb134-5"><a href="#cb134-5" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_line), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_line))</span>
+<span id="cb134-6"><a href="#cb134-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_multipts), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_multipts), <span class="at">pch =</span> <span class="dv">16</span>)</span>
+<span id="cb134-7"><a href="#cb134-7" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(temp_pts), <span class="at">col =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">nrow</span>(temp_pts), <span class="at">pch =</span> <span class="dv">16</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-40-1.png" class="img-fluid" width="672"></p>
 </div>
-<div class="sourceCode cell-code" id="cb133"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb133-1"><a href="#cb133-1" aria-hidden="true" tabindex="-1"></a>sempach_poly <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(sempach_multiline, <span class="at">to =</span> <span class="st">"POLYGON"</span>)</span>
-<span id="cb133-2"><a href="#cb133-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(sempach_poly), <span class="at">col =</span> <span class="st">"navy"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>It is of course not possible to convert points to polygons, but if you have a line or multiline geometry forming a closed ring, we can easily convert it to a polygon.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb135"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb135-1"><a href="#cb135-1" aria-hidden="true" tabindex="-1"></a>sempach_multiline <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(muni[<span class="fu">which</span>(muni<span class="sc">$</span>name <span class="sc">==</span> <span class="st">"Sempach"</span>),], <span class="at">to =</span> <span class="st">"MULTILINESTRING"</span>)</span>
+<span id="cb135-2"><a href="#cb135-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(sempach_multiline), <span class="at">col =</span> <span class="st">"navy"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-40-2.png" class="img-fluid" width="672"></p>
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-41-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb136"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb136-1"><a href="#cb136-1" aria-hidden="true" tabindex="-1"></a>sempach_poly <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(sempach_multiline, <span class="at">to =</span> <span class="st">"POLYGON"</span>)</span>
+<span id="cb136-2"><a href="#cb136-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(sempach_poly), <span class="at">col =</span> <span class="st">"navy"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-41-2.png" class="img-fluid" width="672"></p>
 </div>
 </div>
 <div class="callout-note callout callout-style-default no-icon callout-captioned">
@@ -1277,10 +1302,10 @@ Exercise (5 minutes)
 <div class="cell">
 <details>
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb134"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb134-1"><a href="#cb134-1" aria-hidden="true" tabindex="-1"></a>sursee_poly <span class="ot">&lt;-</span> muni[<span class="fu">which</span>(muni<span class="sc">$</span>name <span class="sc">==</span> <span class="st">"Sursee"</span>),]</span>
-<span id="cb134-2"><a href="#cb134-2" aria-hidden="true" tabindex="-1"></a>sursee_multiline <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(sursee_poly, <span class="at">to =</span> <span class="st">"MULTILINESTRING"</span>)</span>
-<span id="cb134-3"><a href="#cb134-3" aria-hidden="true" tabindex="-1"></a><span class="fu">st_length</span>(sursee_multiline)</span>
-<span id="cb134-4"><a href="#cb134-4" aria-hidden="true" tabindex="-1"></a><span class="fu">st_perimeter</span>(sursee_poly)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb137"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb137-1"><a href="#cb137-1" aria-hidden="true" tabindex="-1"></a>sursee_poly <span class="ot">&lt;-</span> muni[<span class="fu">which</span>(muni<span class="sc">$</span>name <span class="sc">==</span> <span class="st">"Sursee"</span>),]</span>
+<span id="cb137-2"><a href="#cb137-2" aria-hidden="true" tabindex="-1"></a>sursee_multiline <span class="ot">&lt;-</span> <span class="fu">st_cast</span>(sursee_poly, <span class="at">to =</span> <span class="st">"MULTILINESTRING"</span>)</span>
+<span id="cb137-3"><a href="#cb137-3" aria-hidden="true" tabindex="-1"></a><span class="fu">st_length</span>(sursee_multiline)</span>
+<span id="cb137-4"><a href="#cb137-4" aria-hidden="true" tabindex="-1"></a><span class="fu">st_perimeter</span>(sursee_poly)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </div>
@@ -1288,38 +1313,119 @@ Exercise (5 minutes)
 </section>
 <section id="spatial-predicates" class="level3" data-number="6.6">
 <h3 data-number="6.6" class="anchored" data-anchor-id="spatial-predicates"><span class="header-section-number">6.6</span> Spatial predicates</h3>
-</section>
-<section id="distance-operations" class="level3" data-number="6.7">
-<h3 data-number="6.7" class="anchored" data-anchor-id="distance-operations"><span class="header-section-number">6.7</span> Distance operations</h3>
+<p>Topology describes the spatial relationships between vector objects. Two features can for example intersect, or one feature can contain another. The existence of such relationships between features is tested by functions called spatial (binary) predicates. Many are available in the <code>sf</code> package, use <code>?geos_binary_pred</code> if you want to see the full list.</p>
+<div class="callout-important callout callout-style-default callout-captioned">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-caption-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>When using spatial predicates you must be sure that both objects use the same CRS.</p>
+</div>
+</div>
+<p>We can for example easily test which bird sightings are in Sempach.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb135"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb135-1"><a href="#cb135-1" aria-hidden="true" tabindex="-1"></a>world_centroid <span class="ot">&lt;-</span> <span class="fu">st_centroid</span>(World)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb138"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb138-1"><a href="#cb138-1" aria-hidden="true" tabindex="-1"></a>sempach <span class="ot">&lt;-</span> muni[muni<span class="sc">$</span>name<span class="sc">==</span><span class="st">"Sempach"</span>,]</span>
+<span id="cb138-2"><a href="#cb138-2" aria-hidden="true" tabindex="-1"></a>obs_in_sempach <span class="ot">&lt;-</span> <span class="fu">st_intersects</span>(obs, sempach)</span>
+<span id="cb138-3"><a href="#cb138-3" aria-hidden="true" tabindex="-1"></a>obs_in_sempach</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sparse geometry binary predicate list of length 530, where the
+predicate was `intersects'
+first 10 elements:
+ 1: 1
+ 2: 1
+ 3: 1
+ 4: 1
+ 5: 1
+ 6: 1
+ 7: 1
+ 8: 1
+ 9: 1
+ 10: 1</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb140"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb140-1"><a href="#cb140-1" aria-hidden="true" tabindex="-1"></a>obs_in_sempach <span class="ot">&lt;-</span> <span class="fu">st_intersects</span>(obs, sempach, <span class="at">sparse =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb140-2"><a href="#cb140-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span>(obs_in_sempach)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        [,1]
+[525,] FALSE
+[526,] FALSE
+[527,]  TRUE
+[528,] FALSE
+[529,]  TRUE
+[530,] FALSE</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb142"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb142-1"><a href="#cb142-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(obs_in_sempach)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 308</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb144"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb144-1"><a href="#cb144-1" aria-hidden="true" tabindex="-1"></a>obs_not_in_sempach <span class="ot">&lt;-</span> <span class="fu">st_disjoint</span>(obs, sempach, <span class="at">sparse =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb144-2"><a href="#cb144-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(obs_not_in_sempach)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 222</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb146"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb146-1"><a href="#cb146-1" aria-hidden="true" tabindex="-1"></a>soi <span class="ot">&lt;-</span> <span class="fu">st_as_sfc</span>(<span class="st">"POINT(2657271 1219754)"</span>, <span class="at">crs =</span> <span class="dv">2056</span>)</span>
+<span id="cb146-2"><a href="#cb146-2" aria-hidden="true" tabindex="-1"></a>obs_within_1000m <span class="ot">&lt;-</span> <span class="fu">st_is_within_distance</span>(soi, obs, <span class="at">dist =</span> <span class="dv">1000</span>)</span>
+<span id="cb146-3"><a href="#cb146-3" aria-hidden="true" tabindex="-1"></a>obs_within_1000m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sparse geometry binary predicate list of length 1, where the predicate
+was `is_within_distance'
+ 1: 62, 63, 89, 90, 92, 113, 114, 123, 135, 136, ...</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb148"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb148-1"><a href="#cb148-1" aria-hidden="true" tabindex="-1"></a>muni_extract <span class="ot">&lt;-</span> muni[<span class="dv">6</span><span class="sc">:</span><span class="dv">7</span>,]</span>
+<span id="cb148-2"><a href="#cb148-2" aria-hidden="true" tabindex="-1"></a>highways <span class="ot">&lt;-</span> streets[streets<span class="sc">$</span>type <span class="sc">==</span> <span class="dv">2</span>,]</span>
+<span id="cb148-3"><a href="#cb148-3" aria-hidden="true" tabindex="-1"></a><span class="fu">st_intersects</span>(muni_extract, highways)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Sparse geometry binary predicate list of length 2, where the predicate
+was `intersects'
+ 1: 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, ...
+ 2: 1, 2, 3, 4, 5, 19, 20, 58</code></pre>
+</div>
+</div>
+</section>
+<section id="spatial-subsetting" class="level3" data-number="6.7">
+<h3 data-number="6.7" class="anchored" data-anchor-id="spatial-subsetting"><span class="header-section-number">6.7</span> Spatial subsetting</h3>
+</section>
+<section id="distance-operations" class="level3" data-number="6.8">
+<h3 data-number="6.8" class="anchored" data-anchor-id="distance-operations"><span class="header-section-number">6.8</span> Distance operations</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb150"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb150-1"><a href="#cb150-1" aria-hidden="true" tabindex="-1"></a>world_centroid <span class="ot">&lt;-</span> <span class="fu">st_centroid</span>(World)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning in st_centroid.sf(World): st_centroid assumes attributes are constant
 over geometries of x</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb137"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb137-1"><a href="#cb137-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sf_use_s2</span>(<span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb152"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb152-1"><a href="#cb152-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sf_use_s2</span>(<span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Spherical geometry (s2) switched off</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb139"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb139-1"><a href="#cb139-1" aria-hidden="true" tabindex="-1"></a>pt1 <span class="ot">&lt;-</span> world_centroid[world_centroid<span class="sc">$</span>name <span class="sc">==</span> <span class="st">"Switzerland"</span>,]</span>
-<span id="cb139-2"><a href="#cb139-2" aria-hidden="true" tabindex="-1"></a>pt2 <span class="ot">&lt;-</span> world_centroid[world_centroid<span class="sc">$</span>name <span class="sc">==</span> <span class="st">"Australia"</span>,]</span>
-<span id="cb139-3"><a href="#cb139-3" aria-hidden="true" tabindex="-1"></a>(d1 <span class="ot">&lt;-</span> <span class="fu">st_distance</span>(pt1, pt2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb154"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb154-1"><a href="#cb154-1" aria-hidden="true" tabindex="-1"></a>pt1 <span class="ot">&lt;-</span> world_centroid[world_centroid<span class="sc">$</span>name <span class="sc">==</span> <span class="st">"Switzerland"</span>,]</span>
+<span id="cb154-2"><a href="#cb154-2" aria-hidden="true" tabindex="-1"></a>pt2 <span class="ot">&lt;-</span> world_centroid[world_centroid<span class="sc">$</span>name <span class="sc">==</span> <span class="st">"Australia"</span>,]</span>
+<span id="cb154-3"><a href="#cb154-3" aria-hidden="true" tabindex="-1"></a>(d1 <span class="ot">&lt;-</span> <span class="fu">st_distance</span>(pt1, pt2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Units: [m]
          [,1]
 [1,] 14776827</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb141"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb141-1"><a href="#cb141-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sf_use_s2</span>(<span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb156"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb156-1"><a href="#cb156-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sf_use_s2</span>(<span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Spherical geometry (s2) switched on</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb143"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb143-1"><a href="#cb143-1" aria-hidden="true" tabindex="-1"></a>(d2 <span class="ot">&lt;-</span> <span class="fu">st_distance</span>(pt1, pt2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb158"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb158-1"><a href="#cb158-1" aria-hidden="true" tabindex="-1"></a>(d2 <span class="ot">&lt;-</span> <span class="fu">st_distance</span>(pt1, pt2))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Units: [m]
          [,1]
 [1,] 14779867</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb145"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb145-1"><a href="#cb145-1" aria-hidden="true" tabindex="-1"></a>d2 <span class="sc">-</span> d1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb160"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb160-1"><a href="#cb160-1" aria-hidden="true" tabindex="-1"></a>d2 <span class="sc">-</span> d1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Units: [m]
         [,1]
@@ -1328,14 +1434,14 @@ over geometries of x</code></pre>
 </div>
 <div class="cell">
 <div class="cell-output-display">
-<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-43-1.png" class="img-fluid" width="672"></p>
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-48-1.png" class="img-fluid" width="672"></p>
 </div>
 </div>
 </section>
-<section id="aggregate-by-attributes" class="level3" data-number="6.8">
-<h3 data-number="6.8" class="anchored" data-anchor-id="aggregate-by-attributes"><span class="header-section-number">6.8</span> Aggregate by attributes</h3>
+<section id="aggregate-by-attributes" class="level3" data-number="6.9">
+<h3 data-number="6.9" class="anchored" data-anchor-id="aggregate-by-attributes"><span class="header-section-number">6.9</span> Aggregate by attributes</h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb147"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb147-1"><a href="#cb147-1" aria-hidden="true" tabindex="-1"></a><span class="fu">aggregate</span>(pop_est <span class="sc">~</span> continent, <span class="at">FUN =</span> sum, <span class="at">data =</span> World, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb162"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb162-1"><a href="#cb162-1" aria-hidden="true" tabindex="-1"></a><span class="fu">aggregate</span>(pop_est <span class="sc">~</span> continent, <span class="at">FUN =</span> sum, <span class="at">data =</span> World, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                continent    pop_est
 1                  Africa  993321977
@@ -1347,17 +1453,28 @@ over geometries of x</code></pre>
 7 Seven seas (open ocean)        140
 8           South America  394355478</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb149"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb149-1"><a href="#cb149-1" aria-hidden="true" tabindex="-1"></a>world_agg <span class="ot">&lt;-</span> <span class="fu">aggregate</span>(World[<span class="st">"pop_est"</span>], <span class="fu">list</span>(World<span class="sc">$</span>continent), <span class="at">FUN =</span> sum, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb149-2"><a href="#cb149-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(world_agg[,<span class="st">"pop_est"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb164"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb164-1"><a href="#cb164-1" aria-hidden="true" tabindex="-1"></a>world_agg <span class="ot">&lt;-</span> <span class="fu">aggregate</span>(World[<span class="st">"pop_est"</span>], <span class="fu">list</span>(World<span class="sc">$</span>continent), <span class="at">FUN =</span> sum, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb164-2"><a href="#cb164-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(world_agg[,<span class="st">"pop_est"</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-44-1.png" class="img-fluid" width="672"></p>
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-49-1.png" class="img-fluid" width="672"></p>
 </div>
-<div class="sourceCode cell-code" id="cb150"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb150-1"><a href="#cb150-1" aria-hidden="true" tabindex="-1"></a>muni_agg <span class="ot">&lt;-</span> <span class="fu">st_union</span>(muni)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb165"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb165-1"><a href="#cb165-1" aria-hidden="true" tabindex="-1"></a>muni_agg <span class="ot">&lt;-</span> <span class="fu">st_union</span>(muni)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="great-circle-distances" class="level3" data-number="6.9">
-<h3 data-number="6.9" class="anchored" data-anchor-id="great-circle-distances"><span class="header-section-number">6.9</span> Great circle distances</h3>
-<p>st_distance, great circle distance calculations use by default spherical distances (s2_distance or s2_distance_matrix); if sf_use_s2() is FALSE, ellipsoidal distances are computed using st_geod_distance which uses function geod_inverse from GeographicLib (part of PROJ); see Karney, Charles FF, 2013, Algorithms for geodesics, Journal of Geodesy 87(1), 43–55</p>
+<section id="summarizing-rasters" class="level3" data-number="6.10">
+<h3 data-number="6.10" class="anchored" data-anchor-id="summarizing-rasters"><span class="header-section-number">6.10</span> Summarizing rasters</h3>
+<p>Functions with “” memory efficient, own functions possible</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb166"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb166-1"><a href="#cb166-1" aria-hidden="true" tabindex="-1"></a><span class="fu">global</span>(elev, <span class="at">fun =</span> <span class="st">"max"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>    max
+dem 930</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb168"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb168-1"><a href="#cb168-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(elev)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="Spatial-Data-Processing-with-R_files/figure-html/unnamed-chunk-50-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
 </section>
 </section>
 <section id="making-maps" class="level2" data-number="7">
