@@ -38,6 +38,7 @@ Please also update to the latest version of R, otherwise you may get packages th
 install.packages("sf")
 install.packages("lwgeom")
 install.packages("terra")
+install.packages("spatstat.random")
 install.packages("spdep")
 install.packages("tmap")
 install.packages("mapview")
@@ -309,7 +310,7 @@ The CRS used by almost all mapping websites (OpenStreetMap, Google Maps, etc.) s
 With so many CRSs available, we need a way to classify them. That's what the EPSG (European Petroleum Survey Group) started doing a few years ago. They collected and documented most available CRSs in a data set which is now called the EPSG Geodetic Parameter Dataset (<https://epsg.org/home.html>). In this data set, every CRS has a unique identification number that can be used in a GIS software instead of writing the full definition of the CRS. The best available transformations between CRSs are also defined. Sadly this data set is still missing a few interesting CRSs and was thus completed by other companies such as ESRI. This is the reason why you'll sometimes see ESRI codes instead of EPSG for some CRSs. The following CRSs are the most important for us:
 
 | Code         | Name                  | Description                                                                            |
-|------------------|------------------|------------------------------------|
+|-------------------|-------------------|----------------------------------|
 | 2056 (EPSG)  | CH1903+/LV95          | Projected CRS currently used in Switzerland                                            |
 | 21781 (EPSG) | CH1903/LV03           | Former projected CRS used in Switzerland, you will still find data sets using this one |
 | 4326 (EPSG)  | WGS84                 | Geographic CRS used for most global data sets, and by GPS devices                      |
@@ -329,7 +330,7 @@ When looking for examples on the web, you will often find code using what is cal
 You can easily inspect the way CRSs are stored in modern GIS software. For example if you want to inspect the current Swiss CRS, try `st_crs(2056)`. You will get the full description of the CRS. Try to understand some of the elements. If you use EPSG codes, you can simply enter the code as an integer, if it's an ESRI code you should use `st_crs("ESRI:xxxxx")` where `xxxxx` is the ESRI code.
 :::
 
-## Tips and tricks
+## Tips and tricks for vectors
 
 ### Reading and writing vector data
 
@@ -450,64 +451,6 @@ st_delete("export/birds.gpkg", "observations2")
 
 Please don't!
 
-### Reading and writing raster data
-
-As we saw earlier, we need another package to import raster data sets. The `rast()` function from the `terra` package is what we need. It doesn't matter if our raster is continuous, discrete, or contains several bands, the `rast()` function will create the correct `terra` object. However don't forget that it's only a pointer to the data set, the full raster is not imported into memory. Calling the object will display some basic information about the data set.
-
-The digital elevation model is an extract of the DHM25 data set provided by Swisstopo, the orthophoto is an extract of the SWISSIMAGE data set also provided by Swisstopo.
-
-```{r}
-#| echo: false
-#| output: false
-if(file.exists("export/dem.csv")) {file.remove("export/dem.csv")}
-if(file.exists("export/dem1.tif")) {file.remove("export/dem1.tif")}
-if(file.exists("export/dem2.tif")) {file.remove("export/dem2.tif")}
-```
-
-```{r}
-library(terra)
-elev <- rast("data/dem.tif")
-elev
-plot(elev)
-ortho <- rast("data/sempach_ortho.tif")
-ortho
-plot(ortho)
-```
-
-Note that the orthophoto was plotted in a different way (no axes, no legend). The `terra` package automatically detected that the raster had 3 bands and made the assumption that the bands corresponded to red, green and blue intensity values. If this assumption is not correct, you can use the `plotRGB()` function to get the desired plot.
-
-Rasters are nice objects to work with but sometimes it's nice with more familiar R objects. You can easily convert `SpatRaster` objects to dataframes containing the geographic coordinates of all pixels and the related pixel values.
-
-```{r}
-elev_df <- as.data.frame(elev, xy = TRUE)
-head(elev_df)
-write.csv(elev_df, "export/dem.csv")
-```
-
-Similarly, if you have a dataframe containing geographic coordinates located on a regular grid and associated values, you can easily convert it to a `terra` object with the help of the `rast()` function, by adding the argument `type = "xyz"`. This is often useful if you want to plot the predictions of a statistical model on a map, for example the distribution of a species. Here we add a new column to some dataframe filled with random values and we convert it to a 2-band raster.
-
-```{r}
-elev_df$rand <- rnorm(nrow(elev_df))
-
-elev2 <- rast(elev_df, type = "xyz")
-elev2
-plot(elev2)
-```
-
-Exporting raster data set is really easy thanks to the `writeRaster()` function. The format will be automatically recognized based on the filename extension. As we saw in the introduction, the GeoTiff format is almost always the format we should use.
-
-```{r}
-writeRaster(elev, "export/dem1.tif")
-writeRaster(elev2, "export/dem2.tif")
-```
-
-Remember that the first raster was a single band raster and the second one had two bands. What is happening when we visualize the latter with QGIS? It looks like QGIS is combining the bands like an RGB raster. If you want to only export a single band, you can subset the raster data set using `[[]]`, either using the band number or name.
-
-```{r}
-writeRaster(elev2[[1]], "export/dem2.tif", overwrite = TRUE)
-writeRaster(elev2[["dem"]], "export/dem2.tif", overwrite = TRUE)
-```
-
 ### Basic geometric computations
 
 In this section we'll see how to perform some basic geometric computations on spatial data. For example let's how we can compute the area of polygons of the length of lines.
@@ -527,6 +470,7 @@ st_perimeter(muni)
 ```
 
 Computing the centroid of polygons is another useful operation that is easily computed using the `st_centroid()` function.
+
 ```{r}
 muni_centroid <- st_centroid(muni)
 plot(st_geometry(muni))
@@ -639,7 +583,7 @@ st_perimeter(sursee_poly)
 
 Topology describes the spatial relationships between vector objects. Two features can for example intersect, or one feature can contain another. The existence of such relationships between features is tested by functions called spatial (binary) predicates. Many are available in the `sf` package, use `?geos_binary_pred` if you want to see the full list.
 
-::: {.callout-important}
+::: callout-important
 When using spatial predicates you must be sure that both objects use the same CRS.
 :::
 
@@ -649,23 +593,32 @@ We can for example easily test which bird sightings are in Sempach.
 sempach <- muni[muni$name=="Sempach",]
 obs_in_sempach <- st_intersects(obs, sempach)
 obs_in_sempach
+summary(lengths(obs_in_sempach) > 0)
+```
 
+The output is stored in an memory efficient sparse matrix format which not easily readable by humans. We can use the `sparse = FALSE` argument to get a non-sparse matrix and perform standard operations (e.g. computing the number of sightings in Sempach).
+
+```{r}
 obs_in_sempach <- st_intersects(obs, sempach, sparse = FALSE)
 tail(obs_in_sempach)
 sum(obs_in_sempach)
 ```
+
+Using another predicate (`st_disjoint`), we can get a list of all sightings that are in other municipalities.
 
 ```{r}
 obs_not_in_sempach <- st_disjoint(obs, sempach, sparse = FALSE)
 sum(obs_not_in_sempach)
 ```
 
+We can easily find all the sightings that are located within 1km of the Swiss Ornithological Institute.
+
 ```{r}
 soi <- st_as_sfc("POINT(2657271 1219754)", crs = 2056)
-obs_within_1000m <- st_is_within_distance(soi, obs, dist = 1000)
-obs_within_1000m
+st_is_within_distance(soi, obs, dist = 1000)
 ```
 
+Things can get a bit more complex when the two elements used inside the predicate contain multiple feature. In this example we test for intersections between two municipalities and all the highway segments stored in the streets data set.
 
 ```{r}
 muni_extract <- muni[6:7,]
@@ -673,17 +626,116 @@ highways <- streets[streets$type == 2,]
 st_intersects(muni_extract, highways)
 ```
 
-`st_relate()`
+Don't hesitate to try other predicate (e.g. `st_within()`, `st_contains()`). The difference between some of them is sometimes quite subtle. If you need even more flexibility you should use the `st_relate()` function. This flexibility comes with a price, `st_relate()` is much slower since it doesn't use spatial indices. If you want an in-depth explanation of all the possibilities, you should check the following website: <https://en.wikipedia.org/wiki/DE-9IM>.
 
 ### Spatial subsetting
 
-### Distance operations
+Now that we know how to test different topological properties, we can use them to subset data spatially. The `sf` package allows doing that using the usual `[]` notation. This is how we create a new `sf` object containing only the sightings in Sempach. The st_intersects predicate is used by default if you don't specify anything.
 
 ```{r}
-world_centroid <- st_centroid(World)
+obs_in_sempach <- obs[sempach,]
+# Equivalent to
+obs_in_sempach <- obs[sempach, , op = st_intersects]
+```
+
+The empty argument can be used to specify the desired attribute columns.
+
+::: {.callout-note icon="false"}
+## Exercise (5 minutes)
+
+Within a 2 km radius around Swiss Ornithological Institute, how many bird sightings are in Neuenkirch? Try to make a map of the municipalities with the filtered sightings.
+
+```{r}
+#| eval: false
+#| code-fold: true
+neuenkirch <- muni[which(muni$name == "Neuenkirch"),]
+obs_within_2000m <- obs[soi, , op = st_is_within_distance, dist = 1000]
+obs_filtered <- obs_within_2000m[neuenkirch,]
+nrow(b)
+plot(st_geometry(muni))
+plot(st_geometry(obs_filtered), add = TRUE)
+```
+:::
+
+### Spatial joins
+
+We've already seen how to join a spatial object to another table using attributes. Now we'll do something similar but instead of using attributes, we'll perform the join between to spatial objects based on their topological relationships. As a first example we will join the bird sightings data set with the municipalities data set. As output we will get the bird sightings with additional attributes corresponding to their respective municipality. We'll do this using the `st_join()` function.
+
+```{r}
+obs_muni <- st_join(obs, muni, join = st_intersects)
+obs_muni
+table(obs_muni$name.y)
+```
+
+In this example both data sets have an attributed called "name". When we join them together, R is automatically renaming these columns to "name.x" and "name.y". The "x" and "y" corresponds to the order of the data sets when calling the `st_join()` function.
+
+Let's try another spatial join, this time we will join the sightings with a landcover data set, which is an extract of the swissTLM3D data set provided by Swisstopo. The goal of the analysis it to add a new attribute to the bird sightings data set corresponding to the landcover value.
+
+```{r}
+landcover <- st_read("data/geodata.gpkg", "landcover", quiet = TRUE)
+obs_landcover <- st_join(obs, landcover, join = st_intersects)
+obs_landcover
+table(obs_landcover$type, useNA = "always")
+```
+
+By default the `st_join()` function will use `st_intersects` as a predicate, but you can of course specify a different one. Moreover it performs what is called a left join, which means the output will contain all rows from the first object (`obs` in our example). It is also possible to perform an inner join by adding the attribute `left = FALSE`. In this case the output will contain only the rows for which a value was found (i.e. where a spatial match occurred).
+
+```{r}
+obs_landcover_inner <- st_join(obs, landcover, join = st_intersects, left = FALSE)
+obs_landcover_inner
+table(obs_landcover_inner$type, useNA = "always")
+```
+
+::: {.callout-note icon="false"}
+## Exercise (5 minutes)
+
+Have a look at the number of features (rows) of the original `obs` data set and compare it with the number of features of the `obs_landcover` data set. Why are they different?
+
+```{r}
+#| eval: false
+#| code-fold: true
+nrow(obs)
+nrow(obs_landcover)
+# This difference is caused by overlapping polygons in the landcover data set. If a bird sighting
+# is inside 2 polygons, the st_join() function will create 2 rows (one row for each intersecting polygon).
+# This means some sightings will be duplicated. We call this kind of joins "one-to-many".
+# You can find these duplicated sightings by looking at the row names with the rownames() function, or by
+# adding an unique ID to all the sightings before the spatial join and then looking for duplicated IDs.
+```
+:::
+
+Since the landcover data is not a complete coverage of our study area, which leads to NA values in our joined data set, we can maybe try to get more complete results by using another spatial predicate. The `st_nearest_feature` predicate will join the sightings to the nearest landcover polygon. Polygons containing points will be considered to be the closest ones. I honestly don't know what is happening when a point is within two overlapping polygons.
+
+```{r}
+obs_landcover2 <- st_join(obs, landcover, join = st_nearest_feature)
+obs_landcover2
+table(obs_landcover2$type, useNA = "always")
+```
+
+In this example we joined a point data set to a polygon data set and this is the most common application for a spatial join. However we're not restricted to these combinations, we can join all the vector types (e.g. polygons with polygons). If you're joining polygons to polygons, `st_join()` is also able to perform joins based on the maximum area overlay (it joins with the polygon having the largest overlap). To do this, you need to add the `largest = TRUE` argument.
+
+### Distance operations
+
+Calculating distances between `sf` objects is done with the `st_distance()` function.
+
+```{r}
+st_distance(obs[1,], soi)
+```
+
+Once again, we see that `sf` is using units. We also note that the results are stored in a matrix instead of a vector. This format is actually needed since `st_distance()` can also be used to compute all the distance combinations between two `sf` objects containing multiple features.
+
+```{r}
+st_distance(obs[1:5,], muni[1:3,])
+```
+
+We will now make a short excursion in the world of geographic CRS with a quick example showing what `sf` is doing when we don't use standard Euclidean geometry. We will compute the distance between the centroids of Switzerland and Australia. By default `sf` is using the `s2` library to perform its computation on a spheroid when we use a geographic CRS. However for distances, it is possible to obtain a better approximation by using an ellipsoid. To do this, we need to tell `sf` not to use `s2` and the `st_distance()` will use a more precise algorithm. We can of course compare the two estimates.
+
+```{r}
+world_centroids <- st_centroid(World)
+pt1 <- world_centroids[world_centroids$name == "Switzerland",]
+pt2 <- world_centroids[world_centroids$name == "Australia",]
+
 sf_use_s2(FALSE)
-pt1 <- world_centroid[world_centroid$name == "Switzerland",]
-pt2 <- world_centroid[world_centroid$name == "Australia",]
 (d1 <- st_distance(pt1, pt2))
 sf_use_s2(TRUE)
 (d2 <- st_distance(pt1, pt2))
@@ -719,28 +771,525 @@ plot(st_geometry(pt2_proj), add = TRUE, pch = 16, col = "red")
 rm(tmp1, tmp2, gcLine, world_proj, pt1_proj, pt2_proj, gcLine_proj, pt3, pt4, part, extent)
 ```
 
+### Buffers
+
+Buffering objects is one of the most common operations in GIS. A buffer is a polygon showing the area within a given distance of a spatial object. You can buffer all the existing vector types with the `st_buffer()` function.
+
+```{r}
+obs_buff <- st_buffer(obs[c(1, 2, 5),], dist = 80)
+plot(st_geometry(obs_buff), col = 2:4)
+```
+
+In the GIS world curves are often approximated using small segments, even though curves exists in the Simple Feature standard (but they're often poorly implemented in GIS software). The number of segments used to create the buffers is controlled by the argument `nQuadSegs` (= number of segments per quadrant). You can change this value to create buffers with octagonal shapes. You can also increase the default value if you need better precision (especially useful for very large buffers).
+
+```{r}
+obs_buff_oct <- st_buffer(obs[c(1, 2, 5),], dist = 80, nQuadSegs = 2)
+plot(st_geometry(obs_buff_oct), col = 2:4)
+```
+
+Each feature will get its own buffer, which means that, if they're close enough and/or the distance is large enough, the buffers will overlap but they're still separate features. It is possible to merge overlapping buffers using the `st_union()` function. The function will produce a single multipolygon, that's why we need transform the output into a polygon to recover the non-overlapping buffers as separate features. Note that you will use the attributes of the buffers with this operation. If you need to recover some of them, you can use a spatial join.
+
+```{r}
+obs_buff_merged <- st_union(obs_buff)
+obs_buff_merged <- st_cast(obs_buff_merged, "POLYGON")
+plot(obs_buff_merged, col = 2:3)
+```
+
+### Affine transformations
+
+`sf` provide methods to transform `sfc` and `sfg` objects, this is however not possible with `sf` objects (but have a look at the trick at the end of this section). Shifting a geometry is the easiest operation. The next example will shift the borders of Sempach, 500 meters to the north and 200 meters to the east. The shift is always done using the unit defined in the CRS used by the spatial object.
+
+```{r}
+sempach_sfc <- st_geometry(sempach)
+sempach_sfc_shift <- sempach_sfc + c(500, 200)
+```
+
+We can also scale the geometries, but we need a reference point (such as the centroid) for each feature. Once we have these reference points, we can center them by shifting the geometries, apply the scaling, and shift them back to their original locations.
+
+```{r}
+muni_sfc <- st_geometry(muni)
+muni_sfc_centroids <- st_centroid(muni_sfc)
+muni_sfc_scale <- (muni_sfc - muni_sfc_centroids) * 0.5 + muni_sfc_centroids
+
+plot(muni_sfc, col = "grey90")
+plot(muni_sfc_scale, col = "navy", add = TRUE)
+```
+
+Rotation is the last common affine transformation. We also need to define a reference point for each feature and perform the same shifting operations. However, instead of multiplying with a scalar we now use a rotation matrix. Remember that a 2D vector (i.e. coordinates) will be rotated by an angle $\theta$ when we multiply it with the following matrix:
+
+$$R=
+\begin{pmatrix}
+\cos(\theta) & -\sin(\theta)\\
+\sin(\theta) & \cos(\theta)
+\end{pmatrix}
+$$
+
+We can of course combine scaling and rotation...
+
+```{r}
+rotation <- function(theta){
+  theta_rad <- theta * pi / 180
+  matrix(c(cos(theta_rad), sin(theta_rad), -sin(theta_rad), cos(theta_rad)), nrow = 2, ncol = 2)
+}
+
+muni_sfc_rotate <- (muni_sfc - muni_sfc_centroids) * rotation(30) + muni_sfc_centroids
+muni_sfc_scale_rotate <- (muni_sfc - muni_sfc_centroids) * 0.5 * rotation(30) + muni_sfc_centroids
+
+par(mfrow = c(1, 2))
+plot(muni_sfc, col = "grey90")
+plot(muni_sfc_rotate, col = "navy", add = TRUE)
+
+plot(muni_sfc, col = "grey90")
+plot(muni_sfc_scale_rotate, col = "navy", add = TRUE)
+```
+
+Once all the transformations are performed, we can use the `st_set_geometry()` function to create a new `sf` object combining the new geometry with the attributes of the original `sf` object.
+
+```{r}
+muni2 <- st_set_geometry(muni, muni_sfc_scale_rotate)
+```
+
+### Combining geometries
+
+Combining geometries from two different data sets is one of the most common analysis performed in a GIS. The four main operations are the following ones: union, intersection, difference and symmetric difference. The following figure shows a graphical overview of these operations with the function names (source: Lovelace *et al.*, 2019):
+
+![](figures/venn-clip-1.png)
+
+As we've seen earlier, the `st_union()` function can also be used with a single data set to merge geometries.
+
+```{r}
+muni_merged <- st_union(muni)
+muni_merged
+plot(muni_merged, col = "navy")
+```
+
+But it can also be used to merge geometries between two `sf` objects having the same vector type.
+
+```{r}
+temp_poly <- st_geometry(st_buffer(obs[1,], 2000))
+plot(st_union(temp_poly, sempach))
+```
+
+As as another example, let's calculate the intersection between our new polygon and the municipality of Sempach.
+
+```{r}
+muni_inter <- st_intersection(sempach, temp_poly)
+muni_inter
+plot(st_geometry(muni_inter))
+```
+
+In a perfect world you'll get polygons as output when you combine polygon (or multipolygon) objects with one of these functions. However, you may also get something more exotic. Let's have a look at the following example which comes from one of the `sf` vignettes.
+
+```{r}
+a <- st_polygon(list(cbind(c(0, 0, 7.5, 7.5, 0), c(0, -1, -1, 0, 0))))
+b <- st_polygon(list(cbind(c(0, 1, 2, 3, 4, 5, 6, 7, 7, 0), c(1, 0, 0.5, 0, 0, 0.5, -0.5, -0.5, 1, 1))))
+(inter <- st_intersection(a, b))
+
+par(mfrow = c(1, 2))
+plot(a, ylim = c(-1, 1))
+title("Intersecting two polygons:")
+plot(b, add = TRUE, border = "red")
+plot(a, ylim = c(-1, 1))
+title("GEOMETRYCOLLECTION")
+plot(b, add = TRUE, border = "red")
+plot(inter, add = TRUE, col = "green", lwd = 2)
+```
+
+Geometry collections are defined in the Simple Feature standard as a collection of different vector types. For example, one feature (row) could contain 2 polygons, 1 multiline and 3 points. The output of the previous is clearly a geometry collection since the `st_intersection()` function produced 1 polygon, 1 line and 1 point. When performing an intersection or a similar operation, it is important to check that all the produced features have the expected geometry type. An geometry collection output is maybe not so common, but you may get a combination of polygons and multipolygons. Use the `st_geometry_type()` function (maybe in combination with `unique()`) to inspect the types.
+
+Ideally we would use geometry collections directly in our analyses but you'll quickly notice that most functions don't work with them (and most GIS software don't really know what to do with them either). Therefore you'll need to decide which part of the collection is important for you. If you intersect polygons with polygons, most of the time you'll be interested in the polygons and multipolygons outputs. You can use the `st_collection_extract()` function to perform this task.
+
+```{r}
+st_collection_extract(inter, "POLYGON")
+```
+
+::: {.callout-note icon="false"}
+## Exercise (5 minutes)
+
+Create a line object that is intersecting the streets data set. Compute the intersection using the `st_intersection()` function.
+
+```{r}
+#| eval: false
+#| code-fold: true
+temp_line <- st_as_sfc("LINESTRING(2657290 1219789, 2657090 1219789, 2657290 1219889)", crs = 2056)
+temp_inter <- st_intersection(temp_line, streets)
+st_geometry_type(temp_inter)
+plot(temp_line, col = "navy")
+plot(st_geometry(streets), col = "purple", add = TRUE)
+plot(temp_inter[1:3], col = "red", add = TRUE)
+plot(temp_inter[4], col = "blue", add = TRUE)
+```
+:::
+
 ### Aggregate by attributes
+
+Aggregation can be based purely on the attributes, treating the `sf` object as a dataframe using the standard `aggregate()` function. However, the `sf` package also extends the `aggregate()` function if you use a `sf` object as the first argument. Note that the nice formula notation is not possible in this case.
 
 ```{r}
 aggregate(pop_est ~ continent, FUN = sum, data = World, na.rm = TRUE)
 world_agg <- aggregate(World["pop_est"], list(World$continent), FUN = sum, na.rm = TRUE)
+world_agg
 plot(world_agg[,"pop_est"])
-
-muni_agg <- st_union(muni)
 ```
 
-### Summarizing rasters
+Note that the merging is not perfect since some country borders where not perfectly contiguous.
+
+Combining aggregation with intersections allows us to compute interesting parameters for our study area. For example we can compute the total street length in buffers around bird sightings. The `st_agr()` function tells `sf` how the attributes of the data set should be considered. Here we we consider that the attributes are constant within each buffer. Depending on your version of `sf` you might get an error if you don't add this line. 
+
+```{r}
+obs_buff <- st_buffer(obs[c(1, 100, 400), 1], dist = 1000)
+obs_buff$site <- 1:3
+st_agr(obs_buff) <- "constant"
+streets_clip <- st_intersection(obs_buff, st_geometry(streets))
+aggregate(st_length(streets_clip), by = list(site = streets_clip$site), FUN = "sum")
+```
+
+### Generate sample points
+
+```{r}
+samples_random <- st_sample(sempach, 100, type = "random")
+samples_regular <- st_sample(sempach, 100, type = "regular")
+
+par(mfrow = c(1, 2))
+plot(st_geometry(sempach))
+plot(samples_random, add = TRUE)
+plot(st_geometry(sempach))
+plot(samples_regular, add = TRUE)
+```
+
+```{r}
+samples_ssi <- st_sample(sempach, r = 50, n = 100, type = "SSI")
+temp_dist <- st_distance(samples_ssi)
+min(temp_dist[temp_dist > 0])
+plot(st_geometry(sempach))
+plot(samples_ssi, add = TRUE)
+```
+
+### Convex hulls
+
+```{r}
+obs_wagtail <- obs[obs$name == "White Wagtail",]
+obs_wagtail_neuenkirch <- obs_wagtail[muni[muni$name == "Neuenkirch",],]
+conv_hull <- st_convex_hull(st_union(obs_wagtail_neuenkirch))
+plot(conv_hull)
+plot(st_geometry(obs_wagtail_neuenkirch), add = TRUE)
+```
+
+### CRS transformations
+
+```{r}
+st_crs(World)
+grat <- st_graticule()
+world_ch <- st_transform(World, 2056)
+grat_ch <- st_transform(grat, 2056)
+world_equal <- st_transform(World, 8857)
+grat_equal <- st_transform(grat, 8857)
+world_rob <- st_transform(World, "ESRI:54030")
+grat_rob <- st_transform(grat, "ESRI:54030")
+
+par(mfrow = c(2, 2))
+plot(st_geometry(World), col = "grey90")
+plot(st_geometry(grat), col = "lightgrey", add = TRUE)
+plot(st_geometry(world_ch), col = "grey90")
+plot(st_geometry(grat_ch), col = "lightgrey", add = TRUE)
+plot(st_geometry(world_equal), col = "grey90")
+plot(st_geometry(grat_equal), col = "lightgrey", add = TRUE)
+plot(st_geometry(world_rob), col = "grey90")
+plot(st_geometry(grat_rob), col = "lightgrey", add = TRUE)
+```
+
+### Neighborhood analyses
+
+```{r}
+library(spdep)
+muni_neigh <- poly2nb(muni)
+summary(muni_neigh)
+str(muni_neigh)
+
+st_touches(muni)
+
+muni_centroids_coords <- st_coordinates(st_centroid(muni))
+plot(st_geometry(muni))
+plot(muni_neigh, muni_centroids_coords, add = TRUE)
+text(muni_centroids_coords, labels = 1:nrow(muni), pos = 3)
+```
+
+```{r}
+muni_knb <- knn2nb(knearneigh(muni_centroids_coords, k = 2))
+summary(muni_knb)
+is.symmetric.nb(muni_knb)
+muni_knb2 <- make.sym.nb(muni_knb)
+is.symmetric.nb(muni_knb2)
+
+par(mfrow = c(1, 2))
+plot(st_geometry(muni))
+plot(muni_knb, muni_centroids_coords, pch = 16, col = "blue", arrows = TRUE, add = TRUE)
+plot(st_geometry(muni))
+plot(muni_knb2, muni_centroids_coords, pch = 16, col = "blue", arrows = TRUE, add = TRUE)
+```
+
+```{r}
+muni_knb3 <- knn2nb(knearneigh(muni_centroids_coords, k = 1))
+distances <- unlist(nbdists(muni_knb3, muni_centroids_coords))
+dist1nb <- max(distances)
+```
+
+```{r}
+dnb1 <- dnearneigh(muni_centroids_coords, d1 = 0, d2 = 0.75 * dist1nb)
+dnb2 <- dnearneigh(muni_centroids_coords, d1 = 0, d2 = 1 * dist1nb)
+dnb3 <- dnearneigh(muni_centroids_coords, d1 = 0, d2 = 1.25 * dist1nb)
+
+par(mfrow = c(1, 3))
+plot(st_geometry(muni))
+plot(dnb1, muni_centroids_coords, pch = 16, col = "blue", add = TRUE)
+plot(st_geometry(muni))
+plot(dnb2, muni_centroids_coords, pch = 16, col = "blue", add = TRUE)
+plot(st_geometry(muni))
+plot(dnb3, muni_centroids_coords, pch = 16, col = "blue", add = TRUE)
+```
+
+```{r}
+nb2mat(muni_neigh, style = "B")
+neigh_sf <- nb2lines(muni_neigh, coords = st_geometry(muni_centroid))
+```
+nb_winbugs <- nb2WB(muni_neigh)
+nb2INLA(file = "nbinla.txt", muni_neigh)
+
+## Tips and tricks for rasters
+
+### Reading and writing raster data
+
+As we saw earlier, we need another package to import raster data sets. The `rast()` function from the `terra` package is what we need. It doesn't matter if our raster is continuous, discrete, or contains several bands, the `rast()` function will create the correct `terra` object. However don't forget that it's only a pointer to the data set, the full raster is not imported into memory. Calling the object will display some basic information about the data set.
+
+The digital elevation model is an extract of the DHM25 data set provided by Swisstopo, the orthophoto is an extract of the SWISSIMAGE data set also provided by Swisstopo.
+
+```{r}
+#| echo: false
+#| output: false
+if(file.exists("export/dem.csv")) {file.remove("export/dem.csv")}
+if(file.exists("export/dem1.tif")) {file.remove("export/dem1.tif")}
+if(file.exists("export/dem2.tif")) {file.remove("export/dem2.tif")}
+```
+
+```{r}
+library(terra)
+elev <- rast("data/dem.tif")
+elev
+plot(elev)
+ortho <- rast("data/sempach_ortho.tif")
+ortho
+plot(ortho)
+```
+
+Note that the orthophoto was plotted in a different way (no axes, no legend). The `terra` package automatically detected that the raster had 3 bands and made the assumption that the bands corresponded to red, green and blue intensity values. If this assumption is not correct, you can use the `plotRGB()` function to get the desired plot.
+
+Rasters are nice objects to work with but sometimes it's nice with more familiar R objects. You can easily convert `SpatRaster` objects to dataframes containing the geographic coordinates of all pixels and the related pixel values.
+
+```{r}
+elev_vals <- values(elev)
+head(elev_vals)
+elev_df <- as.data.frame(elev, xy = TRUE)
+head(elev_df)
+write.csv(elev_df, "export/dem.csv")
+```
+
+Similarly, if you have a dataframe containing geographic coordinates located on a regular grid and associated values, you can easily convert it to a `terra` object with the help of the `rast()` function, by adding the argument `type = "xyz"`. This is often useful if you want to plot the predictions of a statistical model on a map, for example the distribution of a species. Here we add a new column to some dataframe filled with random values and we convert it to a 2-band raster.
+
+```{r}
+elev_df$rand <- rnorm(nrow(elev_df))
+
+elev2 <- rast(elev_df, type = "xyz")
+elev2
+plot(elev2)
+```
+
+Exporting raster data set is really easy thanks to the `writeRaster()` function. The format will be automatically recognized based on the filename extension. As we saw in the introduction, the GeoTiff format is almost always the format we should use.
+
+```{r}
+writeRaster(elev, "export/dem1.tif")
+writeRaster(elev2, "export/dem2.tif")
+```
+
+Remember that the first raster was a single band raster and the second one had two bands. What is happening when we visualize the latter with QGIS? It looks like QGIS is combining the bands like an RGB raster. If you want to only export a single band, you can subset the raster data set using `[[]]`, either using the band number or name.
+
+```{r}
+writeRaster(elev2[[1]], "export/dem2.tif", overwrite = TRUE)
+writeRaster(elev2[["dem"]], "export/dem2.tif", overwrite = TRUE)
+```
+
+### Summarize rasters
 
 Functions with "" memory efficient, own functions possible
 
 ```{r}
 global(elev, fun = "max")
 hist(elev)
-
 ```
 
+### Spatial subsetting
+
+```{r}
+rmask <- rast("data/sempach_raster.tif")
+elev_crop <- crop(elev, rmask)
+# Identical to
+elev_crop <- elev[rmask, , drop = FALSE]
+plot(elev_crop)
+```
+
+```{r}
+elev_mask <- mask(elev_crop, rmask)
+plot(elev_mask)
+```
+
+```{r}
+elev_crop2 <- crop(elev, sempach)
+plot(elev_crop2)
+elev_mask2 <- mask(elev, sempach)
+plot(elev_mask2)
+elev_mask2 <- trim(elev_mask2)
+plot(elev_mask2)
+```
+
+### Aggregation and resampling
+
+```{r}
+elev_agg <- aggregate(elev, fact = 20)
+plot(elev_agg)
+```
+
+```{r}
+landcover <- rast("data/landcover.tif")
+landcover
+crs(landcover) <- "EPSG:2056"
+landcover <- as.factor(landcover)
+plot(landcover)
+
+landcover_agg <- aggregate(landcover, fact = 5, fun = "modal")
+plot(landcover_agg)
+```
+
+```{r}
+elev_resample <- resample(elev, landcover, method = "bilinear")
+elev_resample
+compareGeom(elev_resample, landcover)
+landcover_resample <- resample(landcover, elev, method = "near")
+landcover_resample
+compareGeom(landcover_resample, elev)
+```
+
+### Classify rasters
+
+```{r}
+elev_recl <- classify(elev, c(0, 500, 700, Inf), include.lowest = TRUE)
+plot(elev_recl)
+```
+
+```{r}
+reclMat_landcover <- matrix(c(1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 10, 1, 11, 2, 12, 2,
+                    13, 2, 14, 2, 15, 2, 16, 2, 17, 2, 18, 2, 19, 3, 20, 3, 21, 3, 22, 3, 23, 4,
+                    24, 4, 25, 4, 26, 4), ncol = 2, byrow = TRUE)
+landcover_recl <- classify(landcover, reclMat_landcover)
+plot(landcover_recl)
+```
+
+```{r}
+landcover_layers <- segregate(landcover_recl)
+names(landcover_layers) <- c("settlements", "agriculture", "forest", "unproductive")
+plot(landcover_layers)
+```
+
+### Extract pixel values
+
+```{r}
+vals <- extract(elev, vect(obs), ID = FALSE)
+```
+
+```{r}
+covariates <- c(landcover, elev_resample)
+names(covariates) <- c("landcover", "elevation")
+vals <- extract(covariates, vect(obs), ID = FALSE)
+```
+
+```{r}
+vals <- extract(elev, vect(obs_buff))
+vals_avg <- extract(elev, vect(obs_buff), fun = mean)
+```
+
+### Combining rasters
+
+```{r}
+layers <- c(landcover_layers[[1]], landcover_layers[[3]])
+```
+
+```{r}
+settlements <- landcover_layers[[1]]
+forests <- landcover_layers[[3]]
+
+combn <- settlements + forests
+combn2 <- settlements + 2 * forests
+plot(combn)
+combn3 <- app(layers, "sum")
+combn4 <- app(layers, "max")
+combn5 <- app(layers, function(i) {pi * sqrt(2 * i)})
+```
+
+```{r}
+reclMat_elev <- matrix(c(0, 500, 100, 500, 700, 200, 700, Inf, 300), ncol = 3, byrow = TRUE)
+elev_recl2 <- classify(elev, reclMat_elev, include.lowest = TRUE)
+landcover_recl2 <- classify(landcover_resample, reclMat_landcover)
+elev_land <- elev_recl2 + landcover_recl2
+plot(as.factor(elev_land))
+```
+
+### Focal analysis
+
+```{r}
+elev_focal_mean <- focal(elev, w = 21, fun = "mean")
+plot(c(elev, elev_focal_mean))
+```
+
+```{r}
+forests_focal_sum <- focal(forests, 5, fun = "sum")
+plot(c(forests, forests_focal_sum))
+
+(fwin_rect <- focalMat(forests, c(200, 200), type = "rectangle"))
+fwin_rect[fwin_rect > 0] <- 1
+forests_focal_sum2 <- focal(forests, fwin_rect, fun = "sum")
+identical(values(forests_focal_sum), values(forests_focal_sum2))
+
+(fwin_circle <- focalMat(forests, 200, type = "circle"))
+fwin_circle[fwin_circle > 0] <- 1
+forests_focal_sum3 <- focal(forests, fwin_circle, fun = "sum")
+plot(c(forests_focal_sum, forests_focal_sum3))
+```
+
+```{r}
+#| cache: true
+ortho_red <- ortho[[1]]
+fwin_gauss <- focalMat(ortho_red, 1, type = "Gauss")
+ortho_red_focal <- focal(ortho_red, fwin_gauss, type = "sum")
+plot(c(ortho_red, ortho_red_focal), col = grey.colors(256), legend = FALSE)
+```
+
+### Generate raster covariates
+### Rasterize vector data
+### CRS transformations
 
 ## Making maps
+
+### Basic maps
+
+
+### Swiss map
+
+### Static maps with tmap
+
+### Dynamic maps
+
+```{r}
+library(mapview)
+mapview(muni)
+```
 
 ## More help
 
