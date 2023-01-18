@@ -934,7 +934,7 @@ plot(world_agg[,"pop_est"])
 
 Note that the merging is not perfect since some country borders where not perfectly contiguous.
 
-Combining aggregation with intersections allows us to compute interesting parameters for our study area. For example we can compute the total street length in buffers around bird sightings. The `st_agr()` function tells `sf` how the attributes of the data set should be considered. Here we we consider that the attributes are constant within each buffer. Depending on your version of `sf` you might get an error if you don't add this line. 
+Combining aggregation with intersections allows us to compute interesting parameters for our study area. For example we can compute the total street length in buffers around bird sightings. The `st_agr()` function tells `sf` how the attributes of the data set should be considered. Here we we consider that the attributes are constant within each buffer. Depending on your version of `sf` you might get an error if you don't add this line.
 
 ```{r}
 obs_buff <- st_buffer(obs[c(1, 100, 400), 1], dist = 1000)
@@ -1052,8 +1052,8 @@ plot(dnb3, muni_centroids_coords, pch = 16, col = "blue", add = TRUE)
 nb2mat(muni_neigh, style = "B")
 neigh_sf <- nb2lines(muni_neigh, coords = st_geometry(muni_centroid))
 ```
-nb_winbugs <- nb2WB(muni_neigh)
-nb2INLA(file = "nbinla.txt", muni_neigh)
+
+nb_winbugs \<- nb2WB(muni_neigh) nb2INLA(file = "nbinla.txt", muni_neigh)
 
 ## Tips and tricks for rasters
 
@@ -1082,6 +1082,16 @@ plot(ortho)
 ```
 
 Note that the orthophoto was plotted in a different way (no axes, no legend). The `terra` package automatically detected that the raster had 3 bands and made the assumption that the bands corresponded to red, green and blue intensity values. If this assumption is not correct, you can use the `plotRGB()` function to get the desired plot.
+
+Similarly we can import a raster containing discrete values, such as a landcover/landuse data set. The following one is an extract from the Swiss landuse statistics, provided by the Federal Statistical Office. Note that the CRS is not defined, this will happen more often with raster data found in the wild than with vector data. Fortunately we know which CRS was used and we can add this information to the data set. Moreover, `terra` is not recognizing automatically that we're processing a discrete raster. That's why we need to use the `as.factor()` function.
+
+```{r}
+landcover <- rast("data/landcover.tif")
+landcover
+crs(landcover) <- "EPSG:2056"
+landcover <- as.factor(landcover)
+plot(landcover)
+```
 
 Rasters are nice objects to work with but sometimes it's nice with more familiar R objects. You can easily convert `SpatRaster` objects to dataframes containing the geographic coordinates of all pixels and the related pixel values.
 
@@ -1119,27 +1129,50 @@ writeRaster(elev2[["dem"]], "export/dem2.tif", overwrite = TRUE)
 
 ### Summarize rasters
 
-Functions with "" memory efficient, own functions possible
+In the GIS world, functions acting on the whole raster (using all pixels) to produce some output are called global functions. They are mostly used to produce some descriptive statistics on the data set. It is therefore not so surprising that `terra` provides such a function. If you prefer plots, the `hist()` and `boxplot()` functions have also been extended to support `SpatRaster` objects.
 
 ```{r}
 global(elev, fun = "max")
 hist(elev)
+boxplot(elev)
+```
+
+You can define you own function when using the `global()` function. However they will be much slower than the standard functions provided by `terra`, or may even fail.
+
+For discrete rasters, you can easily get the frequency distribution of all the available categories.
+
+```{r}
+freq(landcover)
 ```
 
 ### Spatial subsetting
 
+If you need to spatially subset a raster, you can either use another raster defining the zone you want to extract, or a polygon enclosing the area. First we'll have a look at the former. We first import our raster mask.
+
 ```{r}
 rmask <- rast("data/sempach_raster.tif")
+plot(rmask, col = "blue")
+```
+
+Don't forget that regular raster data sets are always rectangular. The raster mask we're now using is the municipality of Sempach. We see its shape, but the data set is still a rectangle. All the other pixels in the raster extent are NAs (you can quickly check it using the `values()` function).
+
+First we need to use the `crop()` function, which will crop our DEM raster to the extent of the mask. This will also work if the mask is not perfectly align with the other raster, but in this case `terra` will perform a slight shift of the extent of the mask so that everything is aligned.
+
+```{r}
 elev_crop <- crop(elev, rmask)
 # Identical to
 elev_crop <- elev[rmask, , drop = FALSE]
 plot(elev_crop)
 ```
 
+We can then perform the masking once we have two rasters with the same extent and alignment. If your mask is not perfectly aligned, you'll need to shift (have a look at the `shift()` function) it or even resample it (see next section).
+
 ```{r}
 elev_mask <- mask(elev_crop, rmask)
 plot(elev_mask)
 ```
+
+Now let's have a look at the second possibility: masking and cropping using a vector data set. This is considerably easier since you don't need to have perfect alignment but this can be a bit slower for complex masks.
 
 ```{r}
 elev_crop2 <- crop(elev, sempach)
@@ -1150,23 +1183,27 @@ elev_mask2 <- trim(elev_mask2)
 plot(elev_mask2)
 ```
 
+With vector data, you can directly use the `mask()` function, without clipping the extent with the `crop()` function first. However you'll still get the original extent, which means a lot of pixels with NAs. The trim() function allows cleaning things a bit by removing outer rows and columns full of NAs.
+
 ### Aggregation and resampling
+
+Sometimes you will need to reduce the resolution of your rasters (e.g. if they're too large to be processed efficiently). This can be easily achieve using the `aggregate()` function. The `fact` argument is the aggregation factor. For example a value of 2 means 2 pixels in the horizontal direction and 2 pixels in the vertical direction, so that 4 pixels will be aggregated into one. If you need to disaggregate a raster, have a look at the `disagg()` function.
 
 ```{r}
 elev_agg <- aggregate(elev, fact = 20)
 plot(elev_agg)
 ```
 
-```{r}
-landcover <- rast("data/landcover.tif")
-landcover
-crs(landcover) <- "EPSG:2056"
-landcover <- as.factor(landcover)
-plot(landcover)
+By default the `aggregate()` function will use the arithmetic mean to merge the pixel values, but you're free to use other functions (including your own ones). As you can guess, we need to be a bit careful when using discrete rasters since most functions won't make any sense. The following one (`fun = "modal"`) will use the most frequent category as the new pixel value.
 
+```{r}
 landcover_agg <- aggregate(landcover, fact = 5, fun = "modal")
 plot(landcover_agg)
 ```
+
+Combining rasters is really easy when they're perfectly aligned (same extent, same resolution). However most of the times we get data sets that don't satisfy this condition. If possible we should first try to slightly shift and/or aggregate the rasters (or maybe crop/extend the extents). If the differences are too big, we need to transform the raster in a more radical way, we need resampling. This means taking the values of our original raster and calculate new values for our target extent and resolution.
+
+The first argument of the resample() function is the raster that needs to be resampled, the second argument is used to provide the target extent and resolution, and the third one is used to indicates the method that will be used for the interpolation of the new values. The bilinear interpolation is the default and is appropriate for continuous rasters. It assigns a weighted average of the four nearest cells of the original raster to the cell of the target one. Other interpolation algorithms are available for continuous rasters (e.g. cubic, cubic spline, etc.). However all of this don't make any sense when we need to resample a discrete raster. For them we need to use the nearest neighbor interpolation. It assigns the value of the nearest cell of the original raster to the cell of the target one.
 
 ```{r}
 elev_resample <- resample(elev, landcover, method = "bilinear")
@@ -1177,12 +1214,28 @@ landcover_resample
 compareGeom(landcover_resample, elev)
 ```
 
+The `compareGeom()` function that the rasters have the same geometries (by default: same extent, number of rows and columns, projection, resolution, and origin), and hence are now aligned. Check how the extent and resolution changed after the resampling.
+
 ### Classify rasters
+
+Sometimes you'll need to classify/reclassify rasters. For a continuous raster we can easily do this by hand, but as we will see `terra` is providing more efficient functions.
+
+```{r}
+elev_recl <- elev
+elev_recl[elev_recl <= 500] <- 1
+elev_recl[elev_recl > 500 & elev_recl <= 700] <- 2
+elev_recl[elev_recl > 700] <- 3
+plot(elev_recl)
+```
+
+This is much easier if we use the `classify()` function. For a continuous raster, we just need to define the breaks. The last argument means that the pixels having a value equal to the lowest break will be included in the first class. This usually makes sense when categorizing continuous rasters (but this is not the default option). The output of the `classify()` function also provides better labels for the classes.
 
 ```{r}
 elev_recl <- classify(elev, c(0, 500, 700, Inf), include.lowest = TRUE)
 plot(elev_recl)
 ```
+
+If we need to reclassify a discrete raster, we need to create a matrix with 2 columns, with the first column containing the old values and the second column containing the corresponding new values.
 
 ```{r}
 reclMat_landcover <- matrix(c(1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 10, 1, 11, 2, 12, 2,
@@ -1192,17 +1245,42 @@ landcover_recl <- classify(landcover, reclMat_landcover)
 plot(landcover_recl)
 ```
 
+With a discrete raster, we can easily create a new raster data set containing separate binary layers based on the categories. This process is often called one-hot encoding or dummy encoding (and is totally similar to what R is doing when you fit a linear model with a discrete variable).
+
 ```{r}
 landcover_layers <- segregate(landcover_recl)
 names(landcover_layers) <- c("settlements", "agriculture", "forest", "unproductive")
 plot(landcover_layers)
 ```
 
+::: {.callout-note icon="false"}
+## Exercise (5 minutes)
+
+Extract the `forest` raster and aggregate it to get a resolution of 1000 meters. Each pixel should contain the ratio of forest (0 = no forest, 1 = 100% forest) within the 1km area.
+
+```{r}
+#| eval: false
+#| code-fold: true
+forests <- landcover_layers[["forest"]]
+forests_agg <- aggregate(r, 10, fun = function(i) {sum(i) / 100})
+```
+:::
+
 ### Extract pixel values
+
+Before doing a statistical analysis, it is quite common to collect all the covariates as GIS layers. We've already seen how to extract information from vector data sets using spatial joins. There is a similar procedure for raster data sets. The most common operation consists of extracting raster values at some given points/sites.
+
+Note that `terra` is using its own data model to store and process vector data (and hence doesn't use the classes defined by `sf`). The `terra` class for vector data is called `SpatVector`. Fortunately it is very easy to convert `sf` objects to `SpatVector` objects using the `vect()` function. If you need to convert a `SpatVector` object to `sf`, you can use the `st_as_sf()` function.
 
 ```{r}
 vals <- extract(elev, vect(obs), ID = FALSE)
+obs2 <- obs
+obs2$elev <- vals
 ```
+
+The output of the `extract()` function is a standard dataframe. The order of the dataframe is the same as the order of the vector data set used to extract the data, you can therefore easily append the extracted values to the `sf` point object.
+
+If you're lucky enough to have properly aligned rasters, you can combine them in a multiband data set and use the `extract()` function on this new data set. You'll also get a dataframe, with one column for each band.
 
 ```{r}
 covariates <- c(landcover, elev_resample)
@@ -1210,16 +1288,32 @@ names(covariates) <- c("landcover", "elevation")
 vals <- extract(covariates, vect(obs), ID = FALSE)
 ```
 
+You're actually not restricted to using points to extract information from rasters. For example using a line you can easily compute an elevation profile. Using polygons is even more powerful and allow performing what is usually called zonal analyses. By default the `extract()` function will extract all the pixels whose centroid is within the polygons.
+
 ```{r}
 vals <- extract(elev, vect(obs_buff))
+head(vals)
+```
+
+The `ID` values corresponds to the ordering of the polygons of the `sf` object. This means that all rows with `ID=1` are pixels intersection the first polygon. You're then free to use these values, for example to characterize some habitat. If you only need some summary statistic for each polygon, you can use the `fun` argument to specify some aggregating function.
+
+```{r}
 vals_avg <- extract(elev, vect(obs_buff), fun = mean)
 ```
 
+The `extract()` function is really powerful (and fast) and has a lot of additional possibilities. Don't hesitate to have a look at its help file.
+
 ### Combining rasters
+
+We've already seen that you can combine different rasters in a multiband data raster, if they're properly aligned and have the same extent.
 
 ```{r}
 layers <- c(landcover_layers[[1]], landcover_layers[[3]])
 ```
+
+We can also combine the pixel values of different rasters, but again, they need to be perfectly aligned and have the same extent. For this kind of analyses, it is easier to imagine all the rasters as overlapping layers, and some function is then applied to all the overlapping pixels to generate one or several new layers. These analyses are often called local analyses since they consider each pixel value within a raster separately.
+
+For example we can easily find the areas with either forests or settlements by summing the two rasters. If we'd like to give more weights to the forests, this is also possible. The `terra` package extends most arithmetic functions to support `SpatRaster` objects.
 
 ```{r}
 settlements <- landcover_layers[[1]]
@@ -1227,11 +1321,18 @@ forests <- landcover_layers[[3]]
 
 combn <- settlements + forests
 combn2 <- settlements + 2 * forests
-plot(combn)
+plot(combn2)
+```
+
+If you use multiband rasters, you can use the `app()` function to get the same result. You can also specify your own function. Note that the third example will produce a raster with 2 bands.
+
+```{r}
 combn3 <- app(layers, "sum")
 combn4 <- app(layers, "max")
 combn5 <- app(layers, function(i) {pi * sqrt(2 * i)})
 ```
+
+Sometimes you'll need to combine 2 or more discrete rasters but you'll still want to be able to see the original categories in the ouptut raster. You can use a simple trick to do that. First reclassify the first raster and use the following numbers as categories: 10, 20, 30, etc. Then reclassify the second raster, and use the following numbers as categories: 1, 2, 3, etc. After adding the two rasters, you'll know immediately that, for example, a value of 24 means that you're in an area within the second category of the first raster and fourth category of the second. If you have three rasters you simply need to use an higher order of magnitude for one of the rasters.
 
 ```{r}
 reclMat_elev <- matrix(c(0, 500, 100, 500, 700, 200, 700, Inf, 300), ncol = 3, byrow = TRUE)
@@ -1243,15 +1344,30 @@ plot(as.factor(elev_land))
 
 ### Focal analysis
 
+Until now we saw examples of global, zonal and local analyses with raster data. Now we're going to dive in the beautiful world of focal analyses. Note that people doing data science and mathematics will usually use the word convolution instead. Focal means that we're not only considering the pixel value, but also the values of the neighboring pixels. The neighborhood is called kernel or moving window and is usually a square (like a 3x3, the focal pixel and its 8 neighbors) or a circle. Once the neighborhood is defined, we perform an aggregation of the pixel values (e.g. by summing or averaging) within the neighborhood and store the output as the new value for the focal cell, and then we move the window to the next pixel. The following figure shows a example using a 3x3 moving window and the minimum as the aggregating function.
+
+![](figures/04_focal_example.png)
+
+Note that the output raster will usually be smaller than the original one (if the moving window is a $m$x$n$ matrix, the output will have $(m-1)$ less rows and $(n-1)$ less columns). If you want a raster with the same size as the original, you'll need to ignore the NA values, hence the window will be smaller in the margins of the raster.
+
+In the next example we perform a smoothing of our DEM using a square moving window of size 21 (pixels) and the arithmetic mean as aggregating function. Note that the size of the moving window has to be an odd number.
+
 ```{r}
 elev_focal_mean <- focal(elev, w = 21, fun = "mean")
+elev_focal_mean2 <- focal(elev, w = 21, fun = "mean", na.rm = TRUE)
 plot(c(elev, elev_focal_mean))
 ```
+
+Focal analyses are really interesting to characterize the habitat of a site since you also get information about the neighboring areas. Using a discrete raster we can for example compute the number of forest pixels in the neighborhood of each pixel.
 
 ```{r}
 forests_focal_sum <- focal(forests, 5, fun = "sum")
 plot(c(forests, forests_focal_sum))
+```
 
+In R, moving windows are stored as matrices whose values represents the weights of the neighbors. Until now we only used moving windows where all pixels in the neighborhood had the same weight. It is thus possible to define your own kind of moving window. The shape (rectangle or circle) usually doesn't have a big influence but adjusting the weights allows all kind of different results (smoothing, sharpening, edge detection, etc.). The `terra` package provides the `focalMat()` function if you need to create specific windows. The first argument will be the raster on which the focal analysis will be computed, the second is the size of the moving window (in the units of the CRS, not in pixels), and then you can specify the type. By default `focalMat()` will produce a matrix whose values sum to 1, this means that using the sum with these weights as aggregating function will actually compute the arithmetic mean. If we really want to compute the sum, we need to adjust the weights ourselves and set all non-zero values to 1.
+
+```{r}
 (fwin_rect <- focalMat(forests, c(200, 200), type = "rectangle"))
 fwin_rect[fwin_rect > 0] <- 1
 forests_focal_sum2 <- focal(forests, fwin_rect, fun = "sum")
@@ -1263,6 +1379,8 @@ forests_focal_sum3 <- focal(forests, fwin_circle, fun = "sum")
 plot(c(forests_focal_sum, forests_focal_sum3))
 ```
 
+With focal analyses, we can actually perform standard image processing tasks similar to the ones you would find in Photoshop. For example we can easily apply a Gaussian blur to an orthophoto (here we only use the red band). The weights of a Gaussian moving window are based on the bivariate normal distribution, and in this case the second argument of the `focalMat()` function is the standard deviation of the distribution.
+
 ```{r}
 #| cache: true
 ortho_red <- ortho[[1]]
@@ -1271,14 +1389,111 @@ ortho_red_focal <- focal(ortho_red, fwin_gauss, type = "sum")
 plot(c(ortho_red, ortho_red_focal), col = grey.colors(256), legend = FALSE)
 ```
 
+If you need to compute some typical indices used in landscape ecology within the moving window, then have a look at the `landscapemetrics` package.
+
 ### Generate raster covariates
+
+The `terra` package is also really good at generating new covariates. For example you can use the `terrain()` function to compute terrain characteristics from elevation data. The available outputs are: slope, aspect, TPI, TRI, roughness and flow direction.
+
+```{r}
+slope <- terrain(elev, "slope", unit = "degrees")
+aspect <- terrain(elev, "aspect", unit = "degrees")
+
+plot(c(slope, aspect))
+```
+
+If we look at the lake of Sempach, we see that the `terrain()` function is using an aspect value of 90° for all flat areas.
+
+Aspect can be a bit tricky to work with because it is circular (a value of 355 is very similar to a value of 5). You'll need to use circular statistics techniques to process it. Another solution that is often used is to decompose aspect in two orthogonal components: eastness and northness. Eastness is an index going from -1 to 1 representing the west-east component of aspect, while northness (also an index from -1 to 1) is representing the north-south component. To compute these values we use the sine and cosine functions on the aspect values, but these have to be in radians!
+
+```{r}
+aspect_rad <- terrain(elev, "aspect", unit = "radians")
+eastness <- sin(aspect_rad)
+northness <- cos(aspect_rad)
+
+plot(c(eastness, northness))
+```
+
+::: {.callout-note icon="false"}
+## Exercise (5 minutes)
+
+Use the slope raster to mask all the flat areas of the `eastness` raster. Use a value of 0 for these areas.
+
+```{r}
+#| eval: false
+#| code-fold: true
+flat_slope <- slope
+flat_slope[flat_slope < 0.1] <- NA
+eastness_corr <- mask(eastness, flat_slope, updatevalue = 0)
+```
+:::
+
+We can also easily calculate distance rasters using the `distance()` function. In the next example, the value of each pixel in the output raster will be the distance to the nearest bird sighting. You can use this with other vector types, for example to compute the distance from streets or the distance to coastlines.
+
+```{r}
+dist_from_obs <- distance(elev, vect(obs))
+plot(dist_from_obs)
+```
+
+::: {.callout-note icon="false"}
+## Exercise (5 minutes)
+
+What is the largest distance from a bird sighting within the municipality of Sempach?
+
+```{r}
+#| eval: false
+#| code-fold: true
+obs_in_sempach <- obs[sempach,]
+dist_sempach <- distance(elev, obs_in_sempach)
+dist_sempach <- mask(dist_sempach, sempach)
+global(dist_sempach, "max", na.rm = TRUE)
+plot(trim(dist_sempach))
+```
+:::
+
 ### Rasterize vector data
+
+Vector data provides a better precision but some operations can be really slow when using large data sets. Sometimes it can be interesting to convert your vector data sets to rasters. This will allow you to perform analyses that would have been to slow or even impossible using vectors.
+
+You'll need the `rasterize()` function to perform such transformations. The second argument is a template raster data set that will be used to provide the extent and resolution. You also need to specify a single attribute that will be used. It is not possible to rasterize a vector data set to a multiband raster.
+
+```{r}
+muni_raster <- rasterize(vect(muni), elev, field = "popsize")
+plot(muni_raster)
+```
+
+This rasterization process can also be used to aggregate vector data. In the next example we first create a template raster using the extent of Sempach and a resolution of 100 meters. Then we rasterize the sightings without specifying an attribute but using an aggregating function. Each pixel of the output raster will contain the number of sightings.
+
+```{r}
+r <- rast(sempach, resolution = 100)
+nobs <- rasterize(vect(obs), r, fun = "sum")
+nobs[is.na(nobs)] <- 0
+plot(nobs)
+```
+
 ### CRS transformations
+
+Performing CRS transformations on vector data sets in relatively easy since you only have to transform the vertices. It is a bit more complex with raster data sets. Projecting a raster data involves a resampling, the geometric characteristics of your raster will change and the pixel values will be recomputed. If you have vector data in a specific CRS and rasters in another CRS but you want to use a common CRS, it's usually better to transform the vectors. Since the operation involves resampling we also need to define the interpolation function. As we've seen before, you need to be careful when projecting discrete rasters and use nearest neighbor interpolation.
+
+```{r}
+elev_wgs84 <- project(elev, "EPSG:4326", method = "bilinear")
+landcover_wgs84 <- project(landcover, "EPSG:4326", method = "near")
+
+plot(elev_wgs84)
+```
+
+If we have a look at some characteristics of the original and projected rasters, we see that some changes occurred...
+
+```{r}
+ncell(elev)
+ncell(elev_wgs84)
+dim(elev)
+dim(elev_wgs84)
+```
 
 ## Making maps
 
 ### Basic maps
-
 
 ### Swiss map
 
