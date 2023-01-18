@@ -1493,9 +1493,115 @@ dim(elev_wgs84)
 
 ## Making maps
 
+Since a few years, it is possible to make really attractive maps using only R. For example, almost of the maps of the Swiss Breeding Bird Atlas 2013-16 were produced in R. Standard GIS software will still provide more advanced cartographic tools but R will be powerful enough for most cases. Moreover you definitely have a big advantage in terms of reproducibility. In this part we will first look at how we can use `sf` and `terra` standard plotting functions to make simple maps. Then we'll use the package `tmap` which provides interesting tools to make more complex maps in a more or less intuitive way. In the end we'll have a look at how we can generate dynamic maps such as the ones you usually find on the web.
+
 ### Basic maps
 
-### Swiss map
+As we've seen in some previous examples, the basic function to make maps is simply the `plot()` function. Both `sf` and `terra` extend this function to support vector and raster data sets. When we create maps, we usually consider the different data sets as layers that we combine to produce a nice output. This is why we will often use the `add = TRUE` argument in the `plot()` function. Most of the standard arguments provided by the standard `plot()` function (such as `pch`, `lwd`, `cex`, etc.) are also supported for `sf` objects. If you want to see all the additional parameters, you can check the help files (`?sf::plot` and `?terra::plot`). Here's a simple example:
+
+```{r}
+plot(st_geometry(muni), col = "grey90", border = "grey50", lty = 3)
+plot(st_union(muni), col = NA, border = "grey50", lwd = 2, add = TRUE)
+plot(obs["name"], pch = 16, cex = 2, add = TRUE)
+```
+
+::: {.callout-note icon="false"}
+## Exercise (5 minutes)
+
+Try a few options, try to change some colors, add some of the streets.
+:::
+
+When we have polygons with some continuous attribute, we can create what is called a choropleth map. These maps are often used to represent spatially variables like population densities or per-capita income. 
+
+```{r}
+cantons <- st_read("data/geodata.gpkg", "cantons", quiet = TRUE)
+par(mfrow = c(1, 3))
+plot(cantons["popsize"])
+plot(cantons["popsize"], nbreaks = 15)
+plot(cantons["popsize"], breaks = "quantile")
+```
+
+::: {.callout-note icon="false"}
+## Exercise (5 minutes)
+
+Compute the population density and plot the corresponding choropleth map. Find better values for the breaks and change the colors used.
+
+```{r}
+#| eval: false
+#| code-fold: true
+cantons$popdensity <- cantons$popsize / st_area(cantons)
+cantons$popdensity <- units::set_units(cantons$popdensity, 1/km^2)
+plot(cantons["popdensity"], breaks = "jenks", nbreaks = 10, pal = hcl.colors(10))
+# Note: jenks usually generates breaks that produce good looking maps, but they're really hard to interpret...
+```
+:::
+
+If you need good colors for your maps, you should use the `RColorBrewer` and `viridis` packages. These were designed by color specialists and are highly recommended. For `RColorBrewer` you can visualize the existing color palettes on the following website: <https://colorbrewer2.org>.
+
+Plotting raster data is very similar
+
+```{r}
+plot(elev, breaks = 15, col = hcl.colors(15))
+```
+
+
+### Exporting high quality maps
+
+Using the default R graphic device doesn't always produce good quality maps, especially if you need to use them for publications. If you want high quality maps you can use the PNG `cairo` graphic device. If you're producing maps containing orthophotos or topographic maps, you should use the JPEG cairo device instead.
+
+```{r}
+#| eval: false
+png("export/map.png", width = 4200, height = 3000, res = 300, type = "cairo")
+plot(st_geometry(muni), col = "grey90", border = "grey50", lty = 3)
+plot(st_union(muni), col = NA, border = "grey50", lwd = 2, add = TRUE)
+plot(obs["name"], pch = 16, cex = 2, add = TRUE)
+dev.off()
+```
+
+When you include topographic maps or orthophotos in you maps, you might get disappointing results. By default, `terra` is using 500000 pixels to plot your map. If one of the layers has more pixels, `terra` will randomly sample them which can give the impression of a poor resolution. You can increase this number by using the `maxcell` argument. Be ready to wait a bit if you use really high values.
+
+```{r}
+par(mfrow = c(1, 2))
+plot(ortho, maxcell = 10000)
+plot(ortho, maxcell = 100000)
+```
+
+### Swiss map with hillshade
+
+If you need a nice Swiss map, you can use the following data and code snippet. The data and the hillshade were produced by Swisstopo and you should add the copyright if you use them. Note how the hillshade is customized and how the rivers get larger.
+
+```{r}
+#| cache: true
+# Import cartographic elements
+lakes <- st_read("data/swiss_carto.gpkg", "lakes", quiet = TRUE)
+rivers <- st_read("data/swiss_carto.gpkg", "rivers", quiet = TRUE)
+border <- st_read("data/swiss_carto.gpkg", "border", quiet = TRUE)
+
+# Define the width of the rivers which will be used on the maps (rescale the attribute "thickness" between 0.5 and 2)
+riverswidth <- as.numeric(gsub("[^0-9.]", "", rivers$thickness))
+width_std <- (riverswidth - min(riverswidth)) * (2 - 0.5) / (max(riverswidth) - min(riverswidth)) + 0.5
+
+# Import the high-resolution hillshade (copyright swisstopo)
+hillshade <- rast("data/hillshade.tif")
+crs(hillshade) <- "EPSG:2056"
+# Compute minmax values
+setMinMax(hillshade)
+# Generate classes for the display of the hillshade
+mapBreaksHillshade <- seq(minmax(hillshade)["min",], minmax(hillshade)["max",], length.out = 64)
+nbColsHillshade <- length(mapBreaksHillshade) - 1
+
+# Crop the hillshade with the extent of Switzerland (add a small buffer to avoid clipping the map in some places)
+hillshade <- crop(hillshade, ext(border) + 5000)
+
+# Mask hillshade
+hillshade <- mask(hillshade, border)
+
+# Plot
+plot(hillshade, breaks = mapBreaksHillshade, col = grey.colors(nbColsHillshade, start = 0.7, end = 0.99), mar = c(1, 1, 1, 1), axes = FALSE, legend = FALSE, maxcell = 1000000)
+plot(st_geometry(border), col = NA, border = rgb(130, 130, 130, maxColorValue = 255), add = TRUE, lwd = 3)
+plot(st_geometry(rivers), col = rgb(69, 138, 230, maxColorValue = 255), add = TRUE, lwd = width_std)
+plot(st_geometry(lakes), col = rgb(162, 197, 243, maxColorValue = 255), border = rgb(69, 138, 230, maxColorValue = 255), add = TRUE)
+```
 
 ### Static maps with tmap
 
