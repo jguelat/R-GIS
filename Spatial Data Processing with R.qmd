@@ -1511,7 +1511,7 @@ plot(obs["name"], pch = 16, cex = 2, add = TRUE)
 Try a few options, try to change some colors, add some of the streets.
 :::
 
-When we have polygons with some continuous attribute, we can create what is called a choropleth map. These maps are often used to represent spatially variables like population densities or per-capita income. 
+When we have polygons with some continuous attribute, we can create what is called a choropleth map. These maps are often used to represent spatially variables like population densities or per-capita income.
 
 ```{r}
 cantons <- st_read("data/geodata.gpkg", "cantons", quiet = TRUE)
@@ -1544,6 +1544,14 @@ Plotting raster data is very similar
 plot(elev, breaks = 15, col = hcl.colors(15))
 ```
 
+You need to be extra cautious when using data sets with different CRSs. Let's have a look at this example:
+
+```{r}
+temp_poly <- st_buffer(soi, 2000000)
+plot(st_geometry(World))
+plot(temp_poly, col = "grey90", add = TRUE)
+plot(st_transform(temp_poly, 4326), col = "grey90", add = TRUE)
+```
 
 ### Exporting high quality maps
 
@@ -1605,28 +1613,264 @@ plot(st_geometry(lakes), col = rgb(162, 197, 243, maxColorValue = 255), border =
 
 ### Static maps with tmap
 
+If you want to make more complex maps, you can still achieve almost everything using standard plotting procedures but you'll spend a lot of time trying to hack everything. If you're a `ggplot2` user, you can of course use it with spatial data. However there's another package, `tmap`, that is similar to `ggplot2` but more intuitive for maps and more GIS friendly. The `tmap` package is also based on the grammar of graphics approach that separates data and aesthetics app.
+
+#### Mapping layers
+
+The `tmap` package is extremely powerful and allows making complex maps. However the number of options is really large and it is easy to feel a bit lost. Fortunately `tmap` also provides the `qtm()` function for quick mapping with sensible defaults.
+
+```{r}
+qtm(muni)
+```
+
+For more complex maps you will use the `tm_shape()` function which will tell `tmap` which data sets you want to use, then you use other functions that will process the data sets as layers (e.g. `tm_polygons()`, `tm_dots()`) and tell `tmap` how to represent them. An example should make things a bit clearer.
+
+```{r}
+tm_shape(muni) + tm_polygons() + tm_dots(size = 2) + tm_text("name", ymod = 1, col = "navy") 
+```
+
+If you want to combine different data sets, you need to use `tm_shape()` twice.
+
+```{r}
+tm_shape(muni) + tm_borders() + tm_shape(obs) + tm_dots(size = 0.2, col = "navy")
+```
+
+One nice feature of the package is that you can save map objects and modify them later
+
+```{r}
+map1 <- tm_shape(muni) + tm_polygons()
+map1 + tm_dots(size = 2) + tm_text("name", ymod = 1, col = "navy")
+```
+
+```{r}
+tm_shape(sempach) + tm_polygons() + tm_shape(obs) + tm_dots()
+```
+
+By default, `tmap` is using the first `tmap_shape()` function to define the extent of the map. It is called the "master" shape. If you need to define your extent using another layer, you can add the `is.master = TRUE` argument to the desired `tmap_shape()` function.
+
+```{r}
+tm_shape(sempach) + tm_polygons() + tm_shape(obs) + tm_dots()
+tm_shape(sempach) + tm_polygons() + tm_shape(obs, is.master = TRUE) + tm_dots()
+```
+
+We're not limited to vector data, `tmap` can easily plot `SpatRaster` objects (and also rasters coming from the `stars` package). We just need to combine `tm_shape()` with `tm_raster()` or `tm_rgb()` if you have RGB multiband raster. Internally `tmap` is using the `stars` package to process rasters, so there an internal conversion is happening for `SpatRaster` objects. By default rasters will be classified, if you want a continuous map, you can add the `style = "cont"` argument to the `tm_raster()` function. If you have a large raster, `tmap` will downsample it to gain speed. If you need the full resolution, you can add `raster.downsample = FALSE` to the `tm_shape()` function. You can of course combine vector and raster data.
+
+```{r}
+tm_shape(elev) + tm_raster()
+tm_shape(elev) + tm_raster(style = "cont")
+tm_shape(ortho) + tm_rgb()
+tm_shape(ortho, raster.downsample = FALSE) + tm_rgb()
+```
+
+The position of the legend for the DEM map is not so nice. Moving it around in the map will not help us since the raster is covering the whole map. We thus need to put the legend outside of the map. To do that we need the `tm_layout()` function. It allows you to modify all the layout elements used in your maps.
+
+```{r}
+tm_shape(elev) + tm_raster(style = "cont") + tm_layout(legend.outside = TRUE)
+```
+
+#### Choropleth maps
+
+Producing a choropleth map is extremely easy with `tmap`. You just need to specify the attribute name inside the `tm_polygons()` function. The legend is automatically added. Changing the classification method is also possible.
+
+```{r}
+tm_shape(muni) + tm_polygons("popsize")
+```
+
+You can easily map several attributes in the same plotting window. In the next example we also use the `tm_layout()` function to add a title and change the position of the legend.
+
+```{r}
+muni$area <- st_area(muni)
+tm_shape(muni) + tm_polygons(c("popsize", "area")) + tm_layout(title = c("Population size", "Area"),
+                                                               legend.position = c("left", "bottom"),
+                                                               title.position=c("right", "top"))
+```
+
+The next example is not a choropleth map, but it shows you another way to plot a continuous variable on a map.
+
+```{r}
+tm_shape(muni) + tm_borders() + tm_bubbles("popsize", scale = 2)
+```
+
+::: {.callout-note icon="false"}
+## Exercise (5 minutes)
+
+Try to make a choropleth map of population size combined with `tm_bubbles`. What is happening with the legend? Try to give a different title to both legends.
+
+```{r}
+#| eval: false
+#| code-fold: true
+tm_shape(muni) + tm_polygons("popsize", title = "Population size (colors)") +
+                 tm_bubbles("popsize", scale = 2, title.size = "Population size (circles)")
+```
+:::
+
+The default color palettes used by `tmap` are not always appropriate. As we've seen earlier, the `RColorBrewer` and `viridis` packages provide really good color palettes. The `tmaptools` package provides a nice function to visualize them: `palette_explorer()`
+
+```{r}
+#| eval: false
+tmaptools::palette_explorer()
+```
+
+Let's try to change the color palette. You can easily reverse the color palette by putting a `-` in front of the palette name.
+
+```{r}
+tm_shape(muni) + tm_polygons("popsize", palette = "viridis", style = "quantile",
+                             title = "Population size", border.col = "white", lwd = 0.5)
+tm_shape(muni) + tm_polygons("popsize", palette = "-viridis", style = "quantile",
+                             title = "Population size", border.col = "white", lwd = 0.5)
+```
+
+#### Customizing layout
+
+We can include extra objects in our map, such as scale bars or north arrows. Each element has a `position` argument. In the next example we also include some styling using the `tm_style()` function. Currently 8 styles are available (have a look at the help file).
+
+```{r}
+tm_shape(muni) + tm_polygons("popsize", palette = "viridis", style = "quantile",
+                             title = "Population size", border.col = "white", lwd = 0.5) + 
+                 tm_compass(position = c("right", "bottom")) +
+                 tm_scale_bar(position = c("left", "bottom")) +
+                 tm_style("grey") +
+                 tm_layout(main.title = c("Population size around Sempach"),
+                           legend.position = c("right", "top"))
+```
+
+If you need to plot a world map with a legend, you can use the `tm_format(World)` or `tm_format(World_wide)` function to improve the format of the map. Here we also use the equal earth projection.
+
+```{r}
+tm_shape(st_transform(World, 8857)) + tm_polygons("area") + tm_style("natural") + tm_format("World_wide")
+```
+
+Having multiple maps on the same plot can be achieved using the `tmap_arrange()` function. First create your maps and store them in a `tmap` object, then use them with `tmap_arrange()`.
+
+```{r}
+map1 <- tm_shape(muni) + tm_polygons()
+map2 <- tm_shape(sempach) + tm_polygons() + tm_shape(obs_in_sempach) + tm_dots()
+map3 <- tm_shape(muni) + tm_polygons("popsize")
+
+tmap_arrange(map1, map2, map3, nrow = 1)
+```
+
+If you need multiple maps with a common legend, you should use the `tm_facets()` function. In the next example we first generate a fake continuous attribute and then automatically create separate maps for each bird species, using the new attribute for the legend.
+
+```{r}
+obs$var1 <- runif(nrow(obs), 1, 100)
+tm_shape(obs) + tm_symbols(col = "var1") + tm_facets(by = "name")
+```
+
+#### Saving maps
+
+Saving maps is trivially easy using the `tmap_save()` function. The format is automatically recognized using the filename extension. You can also specify the height, width and resolution of the map.
+
+```{r}
+#| eval: false
+map1 <- tm_shape(muni) + tm_polygons()
+tmap_save(map1, "mymap.png")
+```
+
 ### Dynamic maps
+
+The `tmap` package is not only amazing for static maps, you can also produce dynamic maps such the ones you find on the web. You need to switch the `tmap`mode using `tmap_mode("view")`. If you want to produce static maps, you can switch back to the standard mode using `tmap_mode("plot")`. Most of the functions and parameters are also available for dynamic maps. Note that the data is automatically projected to the Web Mercator projection.
+
+```{r}
+tmap_mode("view")
+tm_shape(muni) + tm_polygons("popsize", palette = "viridis", style = "quantile",
+                             title = "Population size", border.col = "white", lwd = 0.5)
+```
+
+If you plot two maps side by side, they'll be synchronized.
+
+```{r}
+tm_shape(muni) + tm_polygons(c("popsize", "area"), palette = "Oranges")
+```
+
+The `tmap` package is sometimes too complex for simple visualizations. You can also use the `mapview` package which is really efficient for large data sets.
 
 ```{r}
 library(mapview)
 mapview(muni)
 ```
 
+You can also easily plot multiple data sets using a list.
+
+```{r}
+mapview(list(muni, obs))
+```
+
+And producing choropleth maps is also possible. You need to specify the attributes using the `zcol` argument.
+
+```{r}
+mapview(muni, zcol = "popsize")
+```
+
+The `mapview` package can also plot raster data sets, but you need to convert them to stars objects first. Transparency is also possible.
+
+```{r}
+mapview(stars::st_as_stars(elev), alpha.regions = 0.5)
+```
+
+## Using QGIS through R
+
+Sometimes you know how to do things in QGIS and you don't have the time to search how to do it in R, or maybe QGIS is faster for a specific task. A recent R package called `qgisprocess` was developed for this reason. It gives access to the whole Processing toolbox available in QGIS. Currently it is only available on GitHub and not yet on CRAN, but you can use the `install_github()` function provided by the `remotes` package to install it. Of course you need to have QGIS installed as well.
+
+```{r}
+#| eval: false
+remotes::install_github("paleolimbot/qgisprocess")
+```
+
+To use it, you first need to run the `qgis_configure()` function so that the package can look for a QGIS installation. If you have several versions of QGIS installed, you can use `options(qgisprocess.path = "path/to/qgis_process")` or set the `R_QGISPROCESS_PATH` environment variable.
+
+```{r}
+#| echo: false
+options(qgisprocess.path = "/Applications/QGIS.app/Contents/MacOS/bin/qgis_process")
+```
+
+```{r}
+library(qgisprocess)
+qgis_configure()
+```
+
+You can easily list all the available algorithms using the `qgis_algorithms()` function. For example let's compute a simple buffer around our sightings. The package will convert the `sf` object to a format understood by QGIS, then QGIS will compute the buffer and produce a GeoPackage with the output. We can then import it back to an `sf` object.
+
+```{r}
+obs_buff_qgis_res <- qgis_run_algorithm("native:buffer", 
+                                        INPUT = obs,
+                                        DISTANCE = 1000,
+                                        DISSOLVE = TRUE,
+                                        .quiet = TRUE)
+obs_buff_qgis_res
+obs_buff_qgis <- st_read(qgis_output(obs_buff_qgis_res, "OUTPUT"), quiet = TRUE)
+plot(st_geometry(obs_buff_qgis))
+```
+
+To check the name of the function parameters, you can access the QGIS help files through R using the `qgis_show_help()` function.
+
+## Getting data
+
+Here's a non-exhaustive list of packages you can use to download GIS data.
+
+| Package name  | Description                                                                                               |
+|--------------|----------------------------------------------------------|
+| osmdata       | Download and import small OpenStreetMap datasets                                                          |
+| osmextract    | Download and import large OpenStreetMap datasets                                                          |
+| geodata       | Download and import imports administrative, elevation, WorldClim data                                     |
+| rnaturalearth | Access to Natural Earth vector and raster data                                                            |
+| rnoaa         | Imports National Oceanic and Atmospheric Administration (NOAA) climate data                               |
+| elevatr       | Import digital elevation models                                                                           |
+| giscoR        | Tools to download data from the GISCO (Geographic Information System of the Commission) Eurostat database |
+| MODIStsp      | Download MODIS satellite data                                                                             |
+| swissgd       | Download data from the Swiss geodata infrastructure (https://github.com/zumbov2/swissgd)                  |
+
 ## More help
 
-sf vignettes
+If you need more help, documentation, code examples, you should have a look at the `sf` vignettes and the `terra` documentation (<https://rspatial.org>).
 
-geocomp with R
-
-tmap book
+The book "Geocomputation with R" is absolutely amazing and available for free (legally) on the web: <https://r.geocompx.org>. If you really like `tmap`, you should also check the `tmap` book that is also available for free on the web (but is not yet finished): <https://r-tmap.github.io/tmap-book>. If you don't really like `tmap` you can also have a look at the `mapsf` package.
 
 ## References
 
 Appelhans T., Detsch F., Reudenbach C., Woellauer S. (2022). mapview: Interactive Viewing of Spatial Data in R. R package version 2.11.0
 
 Bivand R. (2022) R Packages for Analyzing Spatial Data: A Comparative Case Study with Areal Data Geographical Analysis, 54(3), 488-518
-
-Giraud T. (2022). mapsf: Thematic Cartography. R package version 0.6.1
 
 Hijmans R. (2022). terra: Spatial Data Analysis. R package version 1.6-47
 
