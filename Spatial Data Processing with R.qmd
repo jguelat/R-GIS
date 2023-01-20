@@ -161,7 +161,7 @@ Play a little bit with the `World` data set, try different functions that you wo
 ```{r}
 #| eval: false
 #| code-fold: true
-redlist <- read.csv("red_list_index.csv")
+redlist <- read.csv("data/red_list_index.csv")
 world2 <- merge(World, redlist, by.x = "iso_a3", by.y = "code")
 plot(world2[,"index_2020"])
 ```
@@ -310,7 +310,7 @@ The CRS used by almost all mapping websites (OpenStreetMap, Google Maps, etc.) s
 With so many CRSs available, we need a way to classify them. That's what the EPSG (European Petroleum Survey Group) started doing a few years ago. They collected and documented most available CRSs in a data set which is now called the EPSG Geodetic Parameter Dataset (<https://epsg.org/home.html>). In this data set, every CRS has a unique identification number that can be used in a GIS software instead of writing the full definition of the CRS. The best available transformations between CRSs are also defined. Sadly this data set is still missing a few interesting CRSs and was thus completed by other companies such as ESRI. This is the reason why you'll sometimes see ESRI codes instead of EPSG for some CRSs. The following CRSs are the most important for us:
 
 | Code         | Name                  | Description                                                                            |
-|--------------|-----------------------|----------------------------------------------------------------------------------------|
+|--------------|--------------|---------------------------------------------|
 | 2056 (EPSG)  | CH1903+/LV95          | Projected CRS currently used in Switzerland                                            |
 | 21781 (EPSG) | CH1903/LV03           | Former projected CRS used in Switzerland, you will still find data sets using this one |
 | 4326 (EPSG)  | WGS84                 | Geographic CRS used for most global data sets, and by GPS devices                      |
@@ -1862,7 +1862,7 @@ To check the name of the function parameters, you can access the QGIS help files
 Here's a non-exhaustive list of packages you can use to download GIS data.
 
 | Package name  | Description                                                                                               |
-|---------------|-----------------------------------------------------------------------------------------------------------|
+|--------------|----------------------------------------------------------|
 | osmdata       | Download and import small OpenStreetMap datasets                                                          |
 | osmextract    | Download and import large OpenStreetMap datasets                                                          |
 | geodata       | Download and import imports administrative, elevation, WorldClim data                                     |
