@@ -45,7 +45,7 @@ install.packages("mapview")
 install.packages("mapsf")
 ```
 
-You'll also need to download the following data that we'll use in some of the examples: <https://quarto.org>.
+You'll also need to download the following data that we'll use in some of the examples: <https://drive.proton.me/urls/HP42FB4EE4#R8SeFfbEikut>.
 
 ## Introduction
 
@@ -1782,6 +1782,18 @@ If you plot two maps side by side, they'll be synchronized.
 ```{r}
 tm_shape(muni) + tm_polygons(c("popsize", "area"), palette = "Oranges")
 ```
+
+If you need other background maps, you can use the `tm_basemap()` function. It is even possible to use the Swiss topographic maps or the orthophotos provided by Swisstopo.
+
+```{r}
+ext <- st_bbox(c(xmin = 8.05, xmax = 8.55, ymin = 46.875, ymax = 47.125), crs = st_crs(4326))
+tm_basemap("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-grau/default/current/3857/{z}/{x}/{y}.jpeg") +
+  tm_shape(soi) + tm_dots(col = "red", size = 1) +
+  tm_view(bbox = ext)
+```
+If you need the Swiss topographic map with colors, use the following URL: https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg
+
+If you need the orthophotos, use the following URL: https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg
 
 The `tmap` package is sometimes too complex for simple visualizations. You can also use the `mapview` package which is really efficient for large data sets.
 
