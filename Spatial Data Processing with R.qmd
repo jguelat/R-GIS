@@ -41,8 +41,8 @@ install.packages("terra")
 install.packages("spatstat.random")
 install.packages("spdep")
 install.packages("tmap")
+install.packages("tmaptools")
 install.packages("mapview")
-install.packages("mapsf")
 ```
 
 You'll also need to download the following data that we'll use in some of the examples: <https://drive.proton.me/urls/HP42FB4EE4#R8SeFfbEikut>.
@@ -197,7 +197,7 @@ Our first object is a 2D point (otherwise we would see XYZ or XYZM) of class `sf
 Now we need to collect our points inside an `sfc` object. This is simply a list of `sfg` objects with an associated coordinate reference system (CRS). Since we collected our data in Switzerland, we will use the standard Swiss coordinate reference system. As we will see later, most coordinate reference systems are identified by a specific number.
 
 ```{r}
-pts <- st_sfc(pt1, pt2, pt3, crs = 2056)
+pts <- st_sfc(pt1, pt2, pt3, crs = "EPSG:2056")
 ```
 
 Let's have a look at our new creation:
@@ -310,7 +310,7 @@ The CRS used by almost all mapping websites (OpenStreetMap, Google Maps, etc.) s
 With so many CRSs available, we need a way to classify them. That's what the EPSG (European Petroleum Survey Group) started doing a few years ago. They collected and documented most available CRSs in a data set which is now called the EPSG Geodetic Parameter Dataset (<https://epsg.org/home.html>). In this data set, every CRS has a unique identification number that can be used in a GIS software instead of writing the full definition of the CRS. The best available transformations between CRSs are also defined. Sadly this data set is still missing a few interesting CRSs and was thus completed by other companies such as ESRI. This is the reason why you'll sometimes see ESRI codes instead of EPSG for some CRSs. The following CRSs are the most important for us:
 
 | Code         | Name                  | Description                                                                            |
-|--------------|--------------|---------------------------------------------|
+|------------------|------------------|-------------------------------------|
 | 2056 (EPSG)  | CH1903+/LV95          | Projected CRS currently used in Switzerland                                            |
 | 21781 (EPSG) | CH1903/LV03           | Former projected CRS used in Switzerland, you will still find data sets using this one |
 | 4326 (EPSG)  | WGS84                 | Geographic CRS used for most global data sets, and by GPS devices                      |
@@ -327,7 +327,7 @@ When looking for examples on the web, you will often find code using what is cal
 ::: {.callout-note icon="false"}
 ## Exercise (5 minutes)
 
-You can easily inspect the way CRSs are stored in modern GIS software. For example if you want to inspect the current Swiss CRS, try `st_crs(2056)`. You will get the full description of the CRS. Try to understand some of the elements. If you use EPSG codes, you can simply enter the code as an integer, if it's an ESRI code you should use `st_crs("ESRI:xxxxx")` where `xxxxx` is the ESRI code.
+You can easily inspect the way CRSs are stored in modern GIS software. For example if you want to inspect the current Swiss CRS, try `st_crs("EPSG:2056")`. You will get the full description of the CRS. Try to understand some of the elements. If you use EPSG codes, you can also simply enter the code as an integer, if it's an ESRI code you should use `st_crs("ESRI:xxxxx")` where `xxxxx` is the ESRI code.
 :::
 
 ## Tips and tricks for vectors
@@ -419,7 +419,7 @@ If you have a table containing coordinates of point data (e.g. sites or bird sig
 obs <- read.csv("data/observations.csv")
 head(obs)
 
-obs <- st_as_sf(obs, coords = c("x", "y"), crs = 2056)
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
 obs
 ```
 
@@ -614,7 +614,7 @@ sum(obs_not_in_sempach)
 We can easily find all the sightings that are located within 1km of the Swiss Ornithological Institute.
 
 ```{r}
-soi <- st_as_sfc("POINT(2657271 1219754)", crs = 2056)
+soi <- st_as_sfc("POINT(2657271 1219754)", crs = "EPSG:2056")
 st_is_within_distance(soi, obs, dist = 1000)
 ```
 
@@ -885,7 +885,7 @@ a <- st_polygon(list(cbind(c(0, 0, 7.5, 7.5, 0), c(0, -1, -1, 0, 0))))
 b <- st_polygon(list(cbind(c(0, 1, 2, 3, 4, 5, 6, 7, 7, 0), c(1, 0, 0.5, 0, 0, 0.5, -0.5, -0.5, 1, 1))))
 (inter <- st_intersection(a, b))
 
-par(mfrow = c(1, 2))
+par(mfrow = c(1, 2), mar = c(0, 1, 3, 1))
 plot(a, ylim = c(-1, 1))
 title("Intersecting two polygons:")
 plot(b, add = TRUE, border = "red")
@@ -946,48 +946,65 @@ aggregate(st_length(streets_clip), by = list(site = streets_clip$site), FUN = "s
 
 ### Generate sample points
 
+If you need to generated points inside a polygon according to some sampling design, you'll need the `st_sample()` function. Have a look at the help file to see all the sampling types available. In the next example we sample 100 points in Sempach based on two different designs.
+
 ```{r}
 samples_random <- st_sample(sempach, 100, type = "random")
 samples_regular <- st_sample(sempach, 100, type = "regular")
 
 par(mfrow = c(1, 2))
-plot(st_geometry(sempach))
-plot(samples_random, add = TRUE)
-plot(st_geometry(sempach))
-plot(samples_regular, add = TRUE)
+plot(st_geometry(sempach), col = "grey90")
+plot(samples_random, pch = 16, cex = 0.5, add = TRUE)
+plot(st_geometry(sempach), col = "grey90")
+plot(samples_regular, pch = 16, cex = 0.5, add = TRUE)
 ```
+
+If you need more sampling methods, you can also use the ones provided by the `spatstat.random` package (you'll need to install it first). The next example shows how to use a simple sequential inhibition process (SSI) to sample 100 random points that are at least 50 meters apart. You can easily check that the constraint was applied by using the `st_distance()` function.
 
 ```{r}
 samples_ssi <- st_sample(sempach, r = 50, n = 100, type = "SSI")
 temp_dist <- st_distance(samples_ssi)
 min(temp_dist[temp_dist > 0])
-plot(st_geometry(sempach))
-plot(samples_ssi, add = TRUE)
+plot(st_geometry(sempach), col = "grey90")
+plot(st_geometry(samples_ssi), pch = 16, cex = 0.5, add = TRUE)
 ```
 
 ### Convex hulls
+
+Sometimes you'll need to use a polygon enclosing all your geometries. This is for example often used as a crude way to estimate an animal home range based on its sightings. Convex hulls are often called minimum convex polygons (MCP) in the ecological literature. Here we extract all the White Wagtail sightings in Neuenkirch and compute the minimum convex polygon. Note that we need to group the sightings into a single multipolygon using the `st_union()` function first. Otherwise we'll get a separate convex hull for each point (and the convex hull of a single point is also a point).
 
 ```{r}
 obs_wagtail <- obs[obs$name == "White Wagtail",]
 obs_wagtail_neuenkirch <- obs_wagtail[muni[muni$name == "Neuenkirch",],]
 conv_hull <- st_convex_hull(st_union(obs_wagtail_neuenkirch))
-plot(conv_hull)
-plot(st_geometry(obs_wagtail_neuenkirch), add = TRUE)
+plot(conv_hull, col = "grey90")
+plot(st_geometry(obs_wagtail_neuenkirch), pch = 16, add = TRUE)
 ```
 
+If you're computing home ranges and need a minimum convex polygon enclosing only a given percentage of the points (e.g. 95%), have a look at the `mcp()` function in the `adehabitatHR` package.
+
 ### CRS transformations
+
+If the data sets you're using have different CRSs, it's usually a good idea to transform some of them so that they all have the same CRS. We need the `st_transform()` function to do this. Sometimes we also say that we "project" the data to another CRS (however, transformations between geographic CRSs are not really projections).
+
+Here we first check the CRS of the `World` data set using the `st_crs()` function and compute a graticule (grid). Then we project the data set to three different projected CRSs, the Swiss CRS, the Equal Earth projection and the Robinson projection. If we use a CRS with an EPSG number, we can also use the integer value directly (without specifying "EPSG:"). However it's a good habit to always specify the provider to avoid confusions.
 
 ```{r}
 st_crs(World)
 grat <- st_graticule()
-world_ch <- st_transform(World, 2056)
-grat_ch <- st_transform(grat, 2056)
-world_equal <- st_transform(World, 8857)
-grat_equal <- st_transform(grat, 8857)
+world_ch <- st_transform(World, "EPSG:2056")
+grat_ch <- st_transform(grat, "EPSG:2056")
+world_equal <- st_transform(World, "EPSG:8857")
+grat_equal <- st_transform(grat, "EPSG:8857")
 world_rob <- st_transform(World, "ESRI:54030")
 grat_rob <- st_transform(grat, "ESRI:54030")
+```
 
-par(mfrow = c(2, 2))
+When we plot that data, we first see that, not surprisingly, the Swiss CRS is not adapted at all for global data, and that the Equal Earth and Robinson projections give a pleasing result. Both of these projections are good choices for world maps.
+
+```{r}
+#| fig-asp: 1
+par(mfrow = c(2, 2), mar = c(1, 1, 1, 1))
 plot(st_geometry(World), col = "grey90")
 plot(st_geometry(grat), col = "lightgrey", add = TRUE)
 plot(st_geometry(world_ch), col = "grey90")
@@ -998,29 +1015,56 @@ plot(st_geometry(world_rob), col = "grey90")
 plot(st_geometry(grat_rob), col = "lightgrey", add = TRUE)
 ```
 
+::: callout-important
+The `st_crs()` function is used to query or assign a CRS, but it does not perform any CRS transformation!
+:::
+
 ### Neighborhood analyses
+
+We've already seen that the `sf` package provides some nice functions to study the topology of geometries. If you need more you can have a look at the `spdep` package which excels at neighborhood analyses. First we compute a neighbor list based on municipalities sharing a common boundary using the `poly2nb()` function.
 
 ```{r}
 library(spdep)
 muni_neigh <- poly2nb(muni)
+muni_neigh
 summary(muni_neigh)
 str(muni_neigh)
+```
 
+The output is stored as a list with the same ordering as the input data sets. For example we see that the municipality 1 (Neuenkirch) is neighboring municipalities 2 (Nottwil) and 3 (Sempach). Since it's stored as a list, we can easily get the number of neighbors for all the municipalities.
+
+```{r}
+sapply(muni_neigh, length)
+```
+
+We can also compare the results of the `poly2nb()` function with the results of the `st_touches()` function provided by `sf`. Fortunately, the outputs are identical.
+
+```{r}
 st_touches(muni)
+```
 
+The `spdep` package provides plotting functions to visualize the neighbor lists. When working with polygons, we need to provide the coordinates of the centroids to the `plot()` function.
+
+```{r}
 muni_centroids_coords <- st_coordinates(st_centroid(muni))
 plot(st_geometry(muni))
 plot(muni_neigh, muni_centroids_coords, add = TRUE)
 text(muni_centroids_coords, labels = 1:nrow(muni), pos = 3)
 ```
 
+Looking for the closest neighbors to some feature is also a common neighborhood analysis (called K-nearest neighbors). Here we look for the two closest nearest neighbors of each municipality. To do that we use the `knearneigh()` function. This function only accepts point geometries so we need to use the centroids (and hence all the distances will be computed between centroids and not between the polygon boundaries). To get a neighbor list we use the `knn2nb()` function on the output of the `knearneigh()` function.
+
 ```{r}
 muni_knb <- knn2nb(knearneigh(muni_centroids_coords, k = 2))
-summary(muni_knb)
+muni_knb
 is.symmetric.nb(muni_knb)
 muni_knb2 <- make.sym.nb(muni_knb)
 is.symmetric.nb(muni_knb2)
+```
 
+The resulting neighbor list will often be asymmetric. For example the two closest neighbors from municipality 1 (Neuenkirch) are municipalities 2 (Nottwil) and 3 (Sempach). However the two closest neighbors of municipality 2 are municipalities 4 and 5. Hence the link between municipalities 1 and 2 is asymmetric. We can use the `make.sym.nb()` function to make everything symmetric, but after applying this function we will have some municipalities with more than two neighbors. Let's have a look at the plot of the two computed neighborhoods (symmetric and asymmetric).
+
+```{r}
 par(mfrow = c(1, 2))
 plot(st_geometry(muni))
 plot(muni_knb, muni_centroids_coords, pch = 16, col = "blue", arrows = TRUE, add = TRUE)
@@ -1028,18 +1072,22 @@ plot(st_geometry(muni))
 plot(muni_knb2, muni_centroids_coords, pch = 16, col = "blue", arrows = TRUE, add = TRUE)
 ```
 
+The K-nearest neighbor analysis also allows us to compute other quantities. For example we can easily compute the minimum distance so that each community has at least one neighbor. We use the `nbdists()` function to compute all the neighborhood distances, and since its output is a list we need to use the `unlist()` function to convert it to a vector.
+
 ```{r}
 muni_knb3 <- knn2nb(knearneigh(muni_centroids_coords, k = 1))
 distances <- unlist(nbdists(muni_knb3, muni_centroids_coords))
-dist1nb <- max(distances)
+(dist1nb <- max(distances))
 ```
+
+The `dnearneigh()` function is similar to the `knearneigh` function. It computes a list of all the neighbors within a specific distance. Similarly, the `dnearneigh()` function only accepts point geometries so we need to work with the centroids. Using this function we can also check that our computed minimum distance to have at least one neighbor is correct.
 
 ```{r}
 dnb1 <- dnearneigh(muni_centroids_coords, d1 = 0, d2 = 0.75 * dist1nb)
 dnb2 <- dnearneigh(muni_centroids_coords, d1 = 0, d2 = 1 * dist1nb)
 dnb3 <- dnearneigh(muni_centroids_coords, d1 = 0, d2 = 1.25 * dist1nb)
 
-par(mfrow = c(1, 3))
+par(mfrow = c(1, 3), mar = c(1, 1, 1, 1))
 plot(st_geometry(muni))
 plot(dnb1, muni_centroids_coords, pch = 16, col = "blue", add = TRUE)
 plot(st_geometry(muni))
@@ -1048,12 +1096,25 @@ plot(st_geometry(muni))
 plot(dnb3, muni_centroids_coords, pch = 16, col = "blue", add = TRUE)
 ```
 
+Neighborhood lists provide an efficient way to store neighborhood information thanks to their sparse structure, but sometimes it's nice to work with the full neighborhood matrix. You can use the `nb2mat()` function to get the matrix.
+
 ```{r}
 nb2mat(muni_neigh, style = "B")
+```
+
+If you want to save the neighborhood as a `sf` line object, you can create the lines using the `nb2lines()` function.
+
+```{r}
 neigh_sf <- nb2lines(muni_neigh, coords = st_geometry(muni_centroid))
 ```
 
-nb_winbugs \<- nb2WB(muni_neigh) nb2INLA(file = "nbinla.txt", muni_neigh)
+Neighborhood information is sometimes needed to fit more complex statistical models accounting for spatial autocorrelation (e.g. CAR models). You can fit some of these models in R, but sometimes you'll need another software such as INLA or WinBUGS. The `spdep` package provide functions to export the neighborhood lists so that they can be used with these software.
+
+```{r}
+#| eval: false
+nb_winbugs <- nb2WB(muni_neigh)
+nb2INLA(file = "export/nbinla.txt", muni_neigh)
+```
 
 ## Tips and tricks for rasters
 
@@ -1113,7 +1174,7 @@ elev2
 plot(elev2)
 ```
 
-Exporting raster data set is really easy thanks to the `writeRaster()` function. The format will be automatically recognized based on the filename extension. As we saw in the introduction, the GeoTiff format is almost always the format we should use.
+Exporting raster data set is really easy thanks to the `writeRaster()` function. The format will be automatically recognized based on the file name extension. As we saw in the introduction, the GeoTiff format is almost always the format we should use.
 
 ```{r}
 writeRaster(elev, "export/dem1.tif")
@@ -1332,7 +1393,7 @@ combn4 <- app(layers, "max")
 combn5 <- app(layers, function(i) {pi * sqrt(2 * i)})
 ```
 
-Sometimes you'll need to combine 2 or more discrete rasters but you'll still want to be able to see the original categories in the ouptut raster. You can use a simple trick to do that. First reclassify the first raster and use the following numbers as categories: 10, 20, 30, etc. Then reclassify the second raster, and use the following numbers as categories: 1, 2, 3, etc. After adding the two rasters, you'll know immediately that, for example, a value of 24 means that you're in an area within the second category of the first raster and fourth category of the second. If you have three rasters you simply need to use an higher order of magnitude for one of the rasters.
+Sometimes you'll need to combine 2 or more discrete rasters but you'll still want to be able to see the original categories in the output raster. You can use a simple trick to do that. First reclassify the first raster and use the following numbers as categories: 10, 20, 30, etc. Then reclassify the second raster, and use the following numbers as categories: 1, 2, 3, etc. After adding the two rasters, you'll know immediately that, for example, a value of 24 means that you're in an area within the second category of the first raster and fourth category of the second. If you have three rasters you simply need to use an higher order of magnitude for one of the rasters.
 
 ```{r}
 reclMat_elev <- matrix(c(0, 500, 100, 500, 700, 200, 700, Inf, 300), ncol = 3, byrow = TRUE)
@@ -1759,7 +1820,7 @@ tm_shape(obs) + tm_symbols(col = "var1") + tm_facets(by = "name")
 
 #### Saving maps
 
-Saving maps is trivially easy using the `tmap_save()` function. The format is automatically recognized using the filename extension. You can also specify the height, width and resolution of the map.
+Saving maps is trivially easy using the `tmap_save()` function. The format is automatically recognized using the file name extension. You can also specify the height, width and resolution of the map.
 
 ```{r}
 #| eval: false
@@ -1787,8 +1848,8 @@ If you need other background maps, you can use the `tm_basemap()` function. It i
 
 ```{r}
 ext <- st_bbox(c(xmin = 8.05, xmax = 8.55, ymin = 46.875, ymax = 47.125), crs = st_crs(4326))
-tm_basemap("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-grau/default/current/3857/{z}/{x}/{y}.jpeg") +
-  tm_shape(soi) + tm_dots(col = "red", size = 1) +
+tm_shape(soi) + tm_dots(col = "red", size = 1) +
+  tm_basemap("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-grau/default/current/3857/{z}/{x}/{y}.jpeg") +
   tm_view(bbox = ext)
 ```
 
@@ -1862,7 +1923,7 @@ To check the name of the function parameters, you can access the QGIS help files
 Here's a non-exhaustive list of packages you can use to download GIS data.
 
 | Package name  | Description                                                                                               |
-|--------------|----------------------------------------------------------|
+|-------------------|-----------------------------------------------------|
 | osmdata       | Download and import small OpenStreetMap datasets                                                          |
 | osmextract    | Download and import large OpenStreetMap datasets                                                          |
 | geodata       | Download and import imports administrative, elevation, WorldClim data                                     |
