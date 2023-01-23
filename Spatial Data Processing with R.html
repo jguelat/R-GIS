@@ -723,9 +723,9 @@ Important
 <p>With so many CRSs available, we need a way to classify them. That’s what the EPSG (European Petroleum Survey Group) started doing a few years ago. They collected and documented most available CRSs in a data set which is now called the EPSG Geodetic Parameter Dataset (<a href="https://epsg.org/home.html" class="uri">https://epsg.org/home.html</a>). In this data set, every CRS has a unique identification number that can be used in a GIS software instead of writing the full definition of the CRS. The best available transformations between CRSs are also defined. Sadly this data set is still missing a few interesting CRSs and was thus completed by other companies such as ESRI. This is the reason why you’ll sometimes see ESRI codes instead of EPSG for some CRSs. The following CRSs are the most important for us:</p>
 <table class="table">
 <colgroup>
-<col style="width: 19%">
-<col style="width: 19%">
-<col style="width: 61%">
+<col style="width: 21%">
+<col style="width: 21%">
+<col style="width: 56%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -3306,7 +3306,7 @@ Run `qgis_algorithms()` to see them.</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>&lt;Result of `qgis_run_algorithm("native:buffer", ...)`&gt;
 List of 1
- $ OUTPUT: 'qgis_outputVector' chr "/var/folders/5j/ckp3kv9x7dj4m8g_r_4vw3bc0000gn/T//RtmpbIJhwh/file6bb064834a6c/file6bb019d17aa1.gpkg"</code></pre>
+ $ OUTPUT: 'qgis_outputVector' chr "/var/folders/5j/ckp3kv9x7dj4m8g_r_4vw3bc0000gn/T//RtmpnfJ6mm/file6e443782b46a/file6e448a7f597.gpkg"</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb391"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb391-1"><a href="#cb391-1" aria-hidden="true" tabindex="-1"></a>obs_buff_qgis <span class="ot">&lt;-</span> <span class="fu">st_read</span>(<span class="fu">qgis_output</span>(obs_buff_qgis_res, <span class="st">"OUTPUT"</span>), <span class="at">quiet =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb391-2"><a href="#cb391-2" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">st_geometry</span>(obs_buff_qgis))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -3321,8 +3321,8 @@ List of 1
 <p>Here’s a non-exhaustive list of packages you can use to download GIS data.</p>
 <table class="table">
 <colgroup>
-<col style="width: 19%">
-<col style="width: 80%">
+<col style="width: 23%">
+<col style="width: 76%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -3383,6 +3383,7 @@ List of 1
 <p>Pebesma E. (2018). Simple Features for R: Standardized Support for Spatial Vector Data. The R Journal, 10(1), 439-446</p>
 <p>Pebesma E., Bivand R. 2022</p>
 <p>Tennekes M. (2018). tmap: Thematic Maps in R. Journal of Statistical Software, 84(6), 1-39</p>
+<p>Tennekes M. (2021). tmaptools: Thematic Map Tools. R package version 3.1-1</p>
 <p>Tennekes M., Nowosad J. (2021). Elegant and informative maps with tmap. https://r-tmap.github.io/tmap-book/index.html</p>
 </section>
 
