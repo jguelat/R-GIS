@@ -29,7 +29,7 @@ Sys.setenv(PROJ_LIB = "")
 
 ## Preparation
 
-In order to run the code for this workshop, you'll need the following packages. You can use the following code to install them. All the required dependencies will be automatically installed.
+In order to run the code for this workshop, you'll need the following packages. You can use the following code to install them. All the required dependencies will be automatically installed. The most important ones are `sf`, `terra`, `tmap` and `mapview`.
 
 ::: callout-important
 Please also update to the latest version of R, otherwise you may get packages that are not fully up-to-date.
@@ -37,13 +37,15 @@ Please also update to the latest version of R, otherwise you may get packages th
 
 ``` r
 install.packages("sf")
-install.packages("lwgeom")
 install.packages("terra")
 install.packages("spatstat.random")
 install.packages("spdep")
 install.packages("tmap")
-install.packages("tmaptools")
 install.packages("mapview")
+install.packages("tmaptools")
+install.packages("maptiles")
+install.packages("leaflet.extras2")
+install.packages("leafsync")
 ```
 
 The data you'll need for the workshop is available on the GitHub repository (<https://github.com/jguelat/R-GIS>). You'll also find all the code needed to re-create this document.
@@ -52,7 +54,7 @@ The data you'll need for the workshop is available on the GitHub repository (<ht
 
 When we work with geographic data we need to decide how to model real world objects or concepts (buildings, forests, elevation, etc.) before we can use them in a computer with a GIS (Geographic Information System) software. GIS people mainly use 2 main data models: vector and raster. Other models exist, such as TINs, point clouds or meshes, but we won't cover them in this workshop.
 
-Vector data is normally used for high precision data sets and can be represented as points, lines or polygons. Properties of the represented features are stored as attributes. The vector types you will use depends of course on your own data and on your analyses. For example: points could be appropriate for bird nests and sightings, lines for moving animals and linear structures (paths, rivers), and polygons for territories and land cover categories. Of course a river can also be modeled as a polygon if you're interested in its width (or you can also store its width as an attribute of the line).
+Vector data is normally used for high precision data sets and can be represented as points, lines or polygons. Properties of the represented features are stored as attributes. The vector types you will use depends of course on your own data and on the required analyses. For example: points could be appropriate for bird nests and sightings, lines for moving animals and linear structures (paths, rivers), and polygons for territories and land cover categories. Of course a river can also be modeled as a polygon if you're interested in its width (or you can also store its width as an attribute of the line).
 
 ::: callout-note
 High precision doesn't necessarily mean high accuracy! For example the coordinates of some points could be stored in meters with 5 decimals even though the measurement error was 2 meters.
@@ -82,18 +84,18 @@ The **Simple Feature** standard ([full documentation](https://portal.ogc.org/fil
 
 ![](figures/sf-classes.png)
 
-A feature represents a geographic entity modeled by one of these types. For example a building would be a single feature of type POLYGON, while the whole Hawaii archipelago would be a single feature of type MULTIPOLYGON (but you could of course also model each island as type POLYGON). A single feature using the MULTI\* types can have multiple elements but this is not mandatory. Most of the time we will use the default 2D version of these types. However it is possible to include additional numeric values such as the height of each point (Z values) or some kind of measurement error (M values). Note that most GIS software will ignore these values for the vast majority of spatial analyses.
+A feature represents a geographic entity modeled by one of these types. For example a building would be a single feature of type POLYGON, while the whole Hawaii archipelago would be a single feature of type MULTIPOLYGON (but you could of course also model each island separately as type POLYGON). A single feature using the MULTI\* types can have multiple elements but this is not mandatory. Most of the time we will use the default 2D version of these types. However it is possible to include additional numeric values such as the height of each point (Z values) or some kind of measurement error (M values). Note that many GIS software will ignore Z and M values for the vast majority of spatial analyses.
 
 ::: callout-important
-The feature type is usually defined for the whole vector data set, and not per feature (well actually `sf` lets you do that but this will brings you all sorts of troubles). For example, if you know that your data set will contain POLYGON and MULTIPOLYGON features, then you will have to use the MULTIPOLYGON type for all of them.
+The feature type is usually defined for the whole vector data set, and not per feature (actually `sf` lets you do that but this will brings you all sorts of troubles). For example, if you know that your data set will contain POLYGON and MULTIPOLYGON features, then you will have to use the MULTIPOLYGON type for all of them.
 :::
 
 In most GIS softwares (including R), simple features are internally encoded using the well-known binary (WKB) or well-known text (WKT) standards. As the name mentions, WKB is a binary format and hence not easily readable by normal humans. The WKT format is encoding exactly the same information as WKB, but in a more human friendly way. Here are some examples of WKT-encoded features (check the [Wikipedia page](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry) if you need more):
 
--   a point: POINT (10 5)
--   a linestring made of 3 points: LINESTRING (1 1, 2 4, 5 10)
--   a polygon (without a hole): POLYGON ((10 5, 10 9, 5 8, 4 2, 10 5))
--   a multilinestring: MULTILINESTRING ((1 1, 2 4, 5 10), (2 2, 5 2))
+-   a point: `POINT (10 5)`
+-   a linestring made of 3 points: `LINESTRING (1 1, 2 4, 5 10)`
+-   a polygon (without a hole): `POLYGON ((10 5, 10 9, 5 8, 4 2, 10 5))`
+-   a multilinestring: `MULTILINESTRING ((1 1, 2 4, 5 10), (2 2, 5 2))`
 
 The geometry is of course essential in order to have a spatial information but the vector data model also allows storing non-spatial attributes (often called *attribute table*) for each feature. As we will see, these tables are stored as data frames in R and each column will store some property of the related feature (identification number, name, etc.). Each row relates to a single spatial feature (which can consist of several geometries if its type is MULTI\*). The following figure shows some examples (source: Tennekes & Nowosad, 2021):
 
@@ -113,7 +115,7 @@ When you first load the `sf` package, it will provide you with version informati
 ::: callout-important
 ## A bit of history
 
-The availability of the `sf` package was huge change in the small world of "R-Spatial". In the old days we used a combination of several packages to process GIS vector data in R. The spatial classes (and some functions) were defined in the `sp` package, the import/export of data was managed by the `rgdal` package, and the geometric operations were available in the `rgeos` package. You'll find a lot of code using these packages on the internet. Please refrain from using them since they'll only be maintained until end of 2023 and will then probably be removed from CRAN. Moreover the `sf` package is definitely more powerful and much faster.
+The availability of the `sf` package was a massive change in the small world of "R-Spatial". In the old days we used a combination of several packages to process GIS vector data in R. The spatial classes (and some functions) were defined in the `sp` package, the import/export of data was managed by the `rgdal` package, and the geometric operations were available in the `rgeos` package. You'll find a lot of code using these packages on the internet. Please refrain from using them since they are not maintained anymore. The packages `rgdal` and `rgeos` were removed from CRAN, `sp` is still available. Moreover the `sf` package is definitely more powerful and much faster.
 :::
 
 We will now load the `World` vector data set inside the `tmap` package and have a look at its structure.
@@ -125,7 +127,7 @@ names(World)
 World
 ```
 
-We see the `World` object is stored as a data frame with an additional geometry column (note that the name of the geometry column doesn't need to be 'geometry'). The content of the geometry column is displayed using the WKT standard. R is also giving us more information, like the coordinate reference system used (more on that later) and the number of dimensions (i.e. XY, XYZ or XYZM).
+We see the `World` object is stored as a data frame with an additional geometry column (note that the name of the geometry column doesn't need to be 'geometry'). The content of the geometry column is displayed using the WKT format. A programmer would say these objects are instances of the `sf` class, and I will thus call them `sf` objects. R is also giving us more information, like the coordinate reference system used (more on that later) and the number of dimensions (i.e. XY, XYZ or XYZM).
 
 ::: {.callout-note collapse="true" icon="false"}
 ## Question: why is the MULTIPOLYGON type appropriate?
@@ -144,8 +146,8 @@ By default R will take the first 9 attributes of the `sf` object and plot them u
 
 ```{r}
 plot(World[,"well_being"])
-plot(World[which(World$well_being > 6),"well_being"])
-plot(World[which(World$name == "Australia"),"well_being"])
+plot(World[World$well_being > 6,"well_being"])
+plot(World[World$name == "Australia","well_being"])
 ```
 
 Note that the color scale was adapted depending on the available values in the filtered data set. If you only need the geometries without any attributes, then you can use the `st_geometry()` function.
@@ -157,7 +159,7 @@ plot(st_geometry(World))
 ::: {.callout-note icon="false"}
 ## Exercise (5 minutes)
 
-Play a little bit with the `World` data set, try different functions that you would normally use with a data frame. Import the `redlist` data set in the file `red_list_index.csv` (source: <https://stats.oecd.org>) and join it to the `World` data frame to add new attributes. Plot a world map using one of the new attributes.
+Play a little bit with the `World` data set, try different functions that you would normally use with a data frame. Import the `redlist` data from the file `red_list_index.csv` (source: <https://stats.oecd.org>) and join it to the `World` data frame to add new attributes. Plot a world map using one of the new attributes.
 
 ```{r}
 #| eval: false
@@ -454,21 +456,19 @@ Please don't!
 
 ### Basic geometric computations
 
-In this section we'll see how to perform some basic geometric computations on spatial data. For example let's how we can compute the area of polygons of the length of lines.
+In this section we'll see how to perform some basic geometric computations on spatial data. For example let's how we can compute the area and perimeter of polygons, or the length of lines.
 
 ```{r}
 st_area(muni)
+st_perimeter(muni)
 head(st_length(streets))
 ```
 
 Note that the results always have a unit of measurement. This is a feature that is provided by `sf` and will occur will all functions giving some sort of measurement. This is compatible with the `units` package which allows easy conversions between different unit types. However this can sometimes be a problem if you need a "raw" value. In this case you can use the `as.numeric()` function to remove the units.
 
-For some strange reason, there is no function in `sf` to compute the perimeter of polygons. To do that you'll need the `st_perimeter()` function in the `lwgeom` package which gives access to some functions available in the PostGIS database.
-
-```{r}
-library(lwgeom)
-st_perimeter(muni)
-```
+::: callout-note
+The `st_perimeter` function was not available in older versions of the `sf` package. The `lwgeom` package was needed to perform this computation.
+:::
 
 Computing the centroid of polygons is another useful operation that is easily computed using the `st_centroid()` function.
 
@@ -748,6 +748,7 @@ d2 - d1
 
 library(sp)
 library(geosphere)
+library(lwgeom)
 tmp1 <- as(pt1, "Spatial")
 tmp2 <- as(pt2, "Spatial")
 gcLine <- greatCircle(tmp1, tmp2, sp = TRUE)
