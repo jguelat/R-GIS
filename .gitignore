@@ -4,3 +4,8 @@
 .RData
 .Ruserdata
 .DS_Store
+export/birds.gpkg
+export/dem.csv
+export/dem1.tif
+export/dem2.tif
+Spatial-Data-Processing-with-R_cache

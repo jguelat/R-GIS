@@ -24,6 +24,7 @@ code-fold: false
 #| echo: false
 #| output: false
 set.seed(555)
+Sys.setenv(PROJ_LIB = "")
 ```
 
 ## Preparation
@@ -45,7 +46,7 @@ install.packages("tmaptools")
 install.packages("mapview")
 ```
 
-You'll also need to download the following data that we'll use in some of the examples: <https://drive.proton.me/urls/HP42FB4EE4#R8SeFfbEikut>.
+The data you'll need for the workshop is available on the GitHub repository (<https://github.com/jguelat/R-GIS>). You'll also find all the code needed to re-create this document.
 
 ## Introduction
 
@@ -309,14 +310,14 @@ The CRS used by almost all mapping websites (OpenStreetMap, Google Maps, etc.) s
 
 With so many CRSs available, we need a way to classify them. That's what the EPSG (European Petroleum Survey Group) started doing a few years ago. They collected and documented most available CRSs in a data set which is now called the EPSG Geodetic Parameter Dataset (<https://epsg.org/home.html>). In this data set, every CRS has a unique identification number that can be used in a GIS software instead of writing the full definition of the CRS. The best available transformations between CRSs are also defined. Sadly this data set is still missing a few interesting CRSs and was thus completed by other companies such as ESRI. This is the reason why you'll sometimes see ESRI codes instead of EPSG for some CRSs. The following CRSs are the most important for us:
 
-| Code         | Name                  | Description                                                                            |
-|----------------|----------------|-----------------------------------------|
-| 2056 (EPSG)  | CH1903+/LV95          | Projected CRS currently used in Switzerland                                            |
-| 21781 (EPSG) | CH1903/LV03           | Former projected CRS used in Switzerland, you will still find data sets using this one |
-| 4326 (EPSG)  | WGS84                 | Geographic CRS used for most global data sets, and by GPS devices                      |
-| 3857 (EPSG)  | Pseudo-Mercator       | Projected CRS used by online maps                                                      |
-| 8857 (EPSG)  | Equal Earth Greenwich | Nice equal-area projection for world maps                                              |
-| 54030 (ESRI) | Robinson              | Aesthetically pleasing projection for world maps                                       |
+| Code | Name | Description |
+|-----------------|-----------------|--------------------------------------|
+| 2056 (EPSG) | CH1903+/LV95 | Projected CRS currently used in Switzerland |
+| 21781 (EPSG) | CH1903/LV03 | Former projected CRS used in Switzerland, you will still find data sets using this one |
+| 4326 (EPSG) | WGS84 | Geographic CRS used for most global data sets, and by GPS devices |
+| 3857 (EPSG) | Pseudo-Mercator | Projected CRS used by online maps |
+| 8857 (EPSG) | Equal Earth Greenwich | Nice equal-area projection for world maps |
+| 54030 (ESRI) | Robinson | Aesthetically pleasing projection for world maps |
 
 ::: callout-important
 ## Proj4strings
@@ -651,7 +652,7 @@ Within a 2 km radius around Swiss Ornithological Institute, how many bird sighti
 neuenkirch <- muni[which(muni$name == "Neuenkirch"),]
 obs_within_2000m <- obs[soi, , op = st_is_within_distance, dist = 1000]
 obs_filtered <- obs_within_2000m[neuenkirch,]
-nrow(b)
+nrow(obs_filtered)
 plot(st_geometry(muni))
 plot(st_geometry(obs_filtered), add = TRUE)
 ```
@@ -1923,17 +1924,17 @@ To check the name of the function parameters, you can access the QGIS help files
 
 Here's a non-exhaustive list of packages you can use to download GIS data.
 
-| Package name  | Description                                                                                               |
-|-----------------|-------------------------------------------------------|
-| osmdata       | Download and import small OpenStreetMap datasets                                                          |
-| osmextract    | Download and import large OpenStreetMap datasets                                                          |
-| geodata       | Download and import imports administrative, elevation, WorldClim data                                     |
-| rnaturalearth | Access to Natural Earth vector and raster data                                                            |
-| rnoaa         | Imports National Oceanic and Atmospheric Administration (NOAA) climate data                               |
-| elevatr       | Import digital elevation models                                                                           |
-| giscoR        | Tools to download data from the GISCO (Geographic Information System of the Commission) Eurostat database |
-| MODIStsp      | Download MODIS satellite data                                                                             |
-| swissgd       | Download data from the Swiss geodata infrastructure (https://github.com/zumbov2/swissgd)                  |
+| Package name | Description |
+|------------------|------------------------------------------------------|
+| osmdata | Download and import small OpenStreetMap datasets |
+| osmextract | Download and import large OpenStreetMap datasets |
+| geodata | Download and import imports administrative, elevation, WorldClim data |
+| rnaturalearth | Access to Natural Earth vector and raster data |
+| rnoaa | Imports National Oceanic and Atmospheric Administration (NOAA) climate data |
+| elevatr | Import digital elevation models |
+| giscoR | Tools to download data from the GISCO (Geographic Information System of the Commission) Eurostat database |
+| MODIStsp | Download MODIS satellite data |
+| swissgd | Download data from the Swiss geodata infrastructure (https://github.com/zumbov2/swissgd) |
 
 ## More help
 
