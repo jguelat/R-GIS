@@ -2,12 +2,11 @@
 title: Spatial Data Processing with R
 author:
   - name: Dr. Jérôme Guélat
-    affiliations:
+    orcid: 0000-0003-1438-4378
+    affiliation:
       - name: Swiss Ornithological Institute
-      - url: https://www.vogelwarte.ch
+        url: https://www.vogelwarte.ch/en
 date: today
-#affiliations: Swiss Ornithological Institute
-#date-format: short
 title-block-banner: true
 format: html
 page-layout: full
@@ -110,7 +109,7 @@ library(tmap)
 library(sf)
 ```
 
-When you first load the `sf` package, it will provide you with version information about some important open-source GIS libraries it uses. In a few rare cases, some functions will only be available if you use recent version of these libraries. If you use `sf` on Windows or Mac and install it from CRAN, they will be included inside the `sf` package and there's no easy way to update them. These libraries are used in almost all open-source GIS software and even in some commercial ones. GDAL takes care of reading and writing your GIS files and can read 99.9% of all the existing GIS formats; GEOS is a Euclidean planar geometry engine and is used for all the common GIS analyses (intersection, union, buffer, etc.); PROJ is responsible for all the coordinate reference systems operations. The s2 library is a spherical geometry engine which is active by default for computations when using unprojected data.
+When you first load the `sf` package, it will provide you with version information about some important open-source GIS libraries it uses. In a few rare cases, some functions will only be available if you use recent version of these libraries. If you use `sf` on Windows or Mac and install it from CRAN, they will be included inside the `sf` package and there's no easy way to update them. These libraries are used in almost all open-source GIS software and even in some commercial ones. GDAL takes care of reading and writing your GIS files and can read 99.9% of all the existing GIS formats (the vector part of the GDAL library is often called OGR); GEOS is a Euclidean planar geometry engine and is used for all the common GIS analyses (intersection, union, buffer, etc.); PROJ is responsible for all the coordinate reference systems operations. The s2 library is a spherical geometry engine which is active by default for computations when using unprojected data.
 
 ::: callout-important
 ## A bit of history
@@ -355,48 +354,74 @@ The following CRSs are especially interesting for us:
 When looking for examples on the web, you will often find code snippets using what is called a proj4string to define a CRS or to reproject data. For example the proj4string for the current Swiss CRS looks like this: `+proj=somerc +lat_0=46.9524055555556 +lon_0=7.43958333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs +type=crs`. This was the standard way of describing CRSs until a few years ago. You should NOT use these strings, instead always use the EPSG (or another authority) number to be on the safe side. Otherwise you may get small to medium position errors when reprojecting your data.
 :::
 
+You can easily explore how CRSs are stored in modern GIS software. For example if you want to inspect the current Swiss CRS:
+
+```{r}
+st_crs("EPSG:2056")
+```
+
+We get the full description of the CRS with all its parameters. The format used is unfortunately also named WKT, but this has nothing to do with the WKT format used to define geometries. If you use EPSG codes, you can also simply enter the code as an integer (please don't do this to avoid confusion).
+
 ::: {.callout-note icon="false"}
 ## Exercise (5 minutes)
 
-You can easily inspect the way CRSs are stored in modern GIS software. For example if you want to inspect the current Swiss CRS, try `st_crs("EPSG:2056")`. You will get the full description of the CRS. Try to understand some of the elements. If you use EPSG codes, you can also simply enter the code as an integer (please don't do this to avoid confusion).
+Try to understand the output of the `st_crs()` function. Try it with a geographic CRS.
 :::
 
 ## Tips and tricks for vectors
 
-### Reading and writing vector data
+### Reading vector data
 
-We had a look at the gory details of the internal structure `sf` objects. However most of the time you will not create such objects on your own but rather rely on the `sf` package to create the right structure when you import existing GIS data. The `sf` package is using the GDAL (Geospatial Data Abstraction Library) library to read and write GIS files, and this means you will be able to import almost all existing GIS vector formats. Note that the vector part of the GDAL library is often called OGR. Sometimes you will not get a standard GIS data set but a simple CSV (or Excel) file containing coordinates and related attributes. We will first see how to import these different data types in order to use them with the `sf` package, and then how to export `sf` objects in a standard GIS format.
+We had a look at the gory details of the internal structure `sf` objects. However most of the time you will not create such objects on your own but rather rely on the `sf` package to create the right structure when you import existing GIS data. The `sf` package is using the GDAL (Geospatial Data Abstraction Library) library to read GIS files, and this means you will be able to import almost all existing GIS vector formats. If you want to check all the available formats, you can use the `st_drivers()` function. Sometimes you will not get a standard GIS data set but a simple CSV (or Excel) file containing coordinates and related attributes. We will now see how to import these different data types in order to use them with the `sf` package.
 
 #### Importing a GeoPackage
 
-The GeoPackage format is the best available open format to store vector data. It is based on the SQLite database format which is probably one of the most used file-based database nowadays. You can think of it as a special folder containing one or several GIS data sets. Since we normally don't know in advance if a GeoPackage contains one or more data sets, we first have to inspect it.
+The GeoPackage format is the best available open format to store vector data. It is based on the SQLite database format which is the most used file-based database nowadays. You can think of it as a special folder containing one or several GIS data sets. Since we normally don't know in advance if a GeoPackage contains one or more data sets, we first have to inspect it.
 
 ```{r}
 st_layers("data/geodata.gpkg")
 ```
 
-You should not always trust the reported number of features. Some GIS format such as the GeoPackage report this number, some don't. If the GeoPackage was produced by a software that doesn't properly implement the standard, the reported number of features can be wrong (but this shouldn't have any other bad consequence). If you want to be sure to get the correct number, you can use the `do_count = TRUE` argument of the `st_layers()` function, but this will be slower.
+You should not always trust the reported number of features. Some GIS format such as the GeoPackage report this number, some don't. If the GeoPackage was produced by a software that doesn't properly implement the standard, the reported number of features could be wrong (but this shouldn't have any other bad consequence). If you want to be sure to get the correct number, you can use the `do_count = TRUE` argument of the `st_layers()` function, but this will be slower.
 
-To read the data, you use the `st_read()` function, the first argument is the path of the GeoPackage, and the second argument is the layer you want to import. The function will return a `sf` object. By default you'll get some information about the data being imported. If you don't need them, you can use the argument `quiet = TRUE`.
+To read the data, you use the `st_read()` function, the first argument is the path of the GeoPackage, and the second argument is the layer you want to import. The function will return an `sf` object. By default you'll get some information about the data being imported. If you don't need them, you can use the argument `quiet = TRUE`.
 
 ```{r}
 muni <- st_read("data/geodata.gpkg", "municipalities")
 streets <- st_read("data/geodata.gpkg", "streets", quiet = TRUE)
-muni
 ```
 
-We see some basic information about the data set, and the first features are shown as well with all the attributes. The municipalities data set in an extract of the swissBOUNDARIES3D provided by Swisstopo, the streets data set is an extract of the swissTLM3D also provided by Swisstopo.
+Let's check the object we've just created. To inspect `sf` objects, you can either call them directly or use the `print()` function. The `head()` and `tail()` functions will also work since `sf` objects are based on data frames. By default, only the first 10 rows will be displayed. If you want to see more (or less) rows, use the `n` argument of the `print()` function.
+
+```{r}
+muni
+print(muni, n = 2)
+```
+
+The output contains basic information about the data set, and the first features are shown with all the attributes. This municipalities data set is an extract of the [swissBOUNDARIES3D](https://www.swisstopo.admin.ch/en/landscape-model-swissboundaries3d) data set provided by Swisstopo, the streets data set is an extract of the [swissTLM3D](https://www.swisstopo.admin.ch/en/landscape-model-swisstlm3d) data set, also provided by Swisstopo.
 
 #### Importing a Shapefile
 
-If you really need to import a Shapefile, you can use the same function. Since Shapefiles cannot contain more than one data set, we only need to provide the first argument of the function. A Shapefile consists of several file with different extensions (.shp, .shx, etc.), we use the .shp extension by default when importing.
+If you really need to import a Shapefile, you should also use the `st_read()` function. Since Shapefiles cannot contain more than one data set, we only need to provide the first argument of the function. A Shapefile consists of several files with different extensions (.shp, .shx, etc.), we use the .shp extension by default when importing.
 
 ```{r}
 muni2 <- st_read("data/municipalities.shp", quiet = TRUE)
 muni2
 ```
 
-This is actually the same data set as the one in the GeoPackage, however we seen that `sf` is now using polygons instead of multipolygons. This is caused by the fact that the Shapefile format does not distinguish properly between the two types. You can thus have a combination of polygons and multipolygons in the same data set.
+This is actually the same data set as the one in the GeoPackage, however, note that `sf` is now using polygons instead of multipolygons. This is caused by the fact that the Shapefile format does not distinguish properly between the two types. The GDAL library will use the type polygons in this case, but you can still have a combination of polygons and multipolygons in the same data set.
+
+#### Importing a CSV file with coordinates
+
+If you have a table containing coordinates of point data (e.g. sites or bird sightings), you should use the `st_as_sf()` function. The first argument should be the data frame containing the data, and you also need to specify the names (or the numbers) of the columns containing the geographic coordinates, and the CRS used. The following data set was extracted from the bird sightings database of the Swiss Ornithological Institute.
+
+```{r}
+obs <- read.csv("data/observations.csv")
+head(obs)
+
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+obs
+```
 
 #### Importing from a PostGIS database
 
@@ -442,21 +467,13 @@ cantons1
 cantons2
 ```
 
-#### Importing a CSV file with coordinates
+### Writing vector data
 
-If you have a table containing coordinates of point data (e.g. sites or bird sightings), you should use the `st_as_sf()` function. The first argument should be the dataframe containing the data, and you also need to specify the names of the columns containing the geographic coordinates, and the CRS used. This data set was extracted from the bird sightings database of the Swiss Ornithological Institute.
-
-```{r}
-obs <- read.csv("data/observations.csv")
-head(obs)
-
-obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
-obs
-```
+When you create or modify a GIS data set with `sf` you'll need to export it to some standard GIS format if you want to share it with colleagues, open it in another GIS software, or simply archive it. I do not recommend using R workspaces (.Rdata files) to share or store GIS data. For exporting vector data, we are going to use the `st_write()` function. Like the `st_read()` function, it uses the GDAL library, so you'll be able to export in many different formats. You can specify the format explicitly, otherwise `sf` will try to guess it based on the file extension.
 
 #### Exporting to GeoPackage
 
-To export vector data, you need to use the `st_write()` function. Like the `st_read()` function, it uses the GDAL library, so you'll be able to export in many different formats. You can specify the format explicitely, otherwise `sf` will try to guess it based on the file extension. For a GeoPackage, you need to specify the name of the GeoPackage first (it will be automatically created if it doesn't exist) and the name of the data set that will be stored inside the GeoPackage. If you specify a GeoPackage that already exists, the data set will be added to it as a new table.
+For a GeoPackage, you need to specify the name of the GeoPackage first (it will be automatically created if it doesn't exist) and the name of the data set that will be stored inside the GeoPackage. If you specify a GeoPackage that already exists, the data set will be added to it as a new table.
 
 ```{r}
 #| echo: false
@@ -953,7 +970,7 @@ plot(temp_inter[4], col = "blue", add = TRUE)
 
 ### Aggregate by attributes
 
-Aggregation can be based purely on the attributes, treating the `sf` object as a dataframe using the standard `aggregate()` function. However, the `sf` package also extends the `aggregate()` function if you use a `sf` object as the first argument. Note that the nice formula notation is not possible in this case.
+Aggregation can be based purely on the attributes, treating the `sf` object as a dataframe using the standard `aggregate()` function. However, the `sf` package also extends the `aggregate()` function if you use an `sf` object as the first argument. Note that the nice formula notation is not possible in this case.
 
 ```{r}
 aggregate(pop_est ~ continent, FUN = sum, data = World, na.rm = TRUE)
@@ -1132,7 +1149,7 @@ Neighborhood lists provide an efficient way to store neighborhood information th
 nb2mat(muni_neigh, style = "B")
 ```
 
-If you want to save the neighborhood as a `sf` line object, you can create the lines using the `nb2lines()` function.
+If you want to save the neighborhood as an `sf` line object, you can create the lines using the `nb2lines()` function.
 
 ```{r}
 neigh_sf <- nb2lines(muni_neigh, coords = st_geometry(muni_centroid))
