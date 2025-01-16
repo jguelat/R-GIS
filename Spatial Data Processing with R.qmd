@@ -51,6 +51,18 @@ The data you'll need for the workshop is available on the GitHub repository (<ht
 
 ## Introduction
 
+### R and GIS
+
+You've probably already used a more traditional GIS software such as QGIS or ArcGIS Pro, you've maybe even heard that many GIS specialists use the Python programming language. Then why would you start using R, a statistic software, to perform your GIS analyses and make maps? I will only outline a few advantages and disadvantages in this introduction.
+
+A lot of ecological data you're going to analyse has a spatial component and it's convenient to perform everything in the same software. You will not need to transfer files and everything will be in the right format for subsequent statistical analyses. Moreover, most of you already know R and it's definitely easier to extend a bit you knowledge to include GIS analyses than to learn how to use a new software or how to code in Python. Fortunately, there's a really active community of R-users doing GIS, so you will not be alone and you'll easily find a lot of documentation online. There's also an incredibly large number of packages on CRAN for spatial data processing or analysis. You'll find an overview on the [CRAN Task View: Analysis of Spatial Data](https://cran.r-project.org/web/views/Spatial.html).
+
+Doing your GIS analyses with code is also a nice opportunity to make your research more reproducible. The whole data processing is documented and you and others can easily check and re-run everything. The same applies for maps, you can re-create them in a few seconds if the data changed. This is much harder if you only use a "point and click" GIS software.
+
+However there are some GIS tasks where R doesn't shine. I would for example never digitize GIS data or georeference images (such as old maps) using R. As we will see in the second part of the workshop, the cartographic capabilities of some R packages are really impressive. But it will still be easier to use a traditional GIS software if you need more specialized techniques such as complex labeling, advanced symbology or complex map layouts. The same applies if you need to use 3D vector data (with the exception of point clouds).
+
+### GIS data models
+
 When we work with geographic data we need to decide how to model real world objects or concepts (buildings, forests, elevation, etc.) before we can use them in a computer with a GIS (Geographic Information System) software. GIS people mainly use 2 main data models: vector and raster. Other models exist, such as TINs, point clouds or meshes, but we won't cover them in this workshop.
 
 Vector data is normally used for high precision data sets and can be represented as points, lines or polygons. Properties of the represented features are stored as attributes. The vector types you will use depends of course on your own data and on the required analyses. For example: points could be appropriate for bird nests and sightings, lines for moving animals and linear structures (paths, rivers), and polygons for territories and land cover categories. Of course a river can also be modeled as a polygon if you're interested in its width (or you can also store its width as an attribute of the line).
@@ -436,7 +448,7 @@ obs_wgs <- st_as_sf(obs_wgs, coords = c("lon", "lat"), crs = "EPSG:4326")
 
 #### Importing from a PostGIS database
 
-PostGIS is a famous open-source extension for the PostgreSQL database management system. It allows storing all kind of GIS data inside a database and perform hundreds of typical GIS analyses. The Swiss Ornithological Institute is using PostGIS to store almost all its bird data and a lot of other GIS data sets. If you have a laptop provided by the institute and you have access to the institute internal network (via cable or private Wi-Fi, not the public one), you should be able to run the following code.
+PostGIS is a famous open-source extension for the PostgreSQL database management system. It allows storing all kind of GIS data inside a database and perform hundreds of typical GIS analyses. The Swiss Ornithological Institute is using PostGIS to store almost all its bird data and a lot of other GIS data sets. If you have a laptop provided by the institute and you already accessed our database via QGIS, you should be able to run the following code. The process will be the same for all PostGIS databases.
 
 First we need to load the `RPostgres` package which provides function to access PostgreSQL databases (and hence PostGIS, too). There is another package providing similar functionality called `RPostgreSQL`, but in my opinion the `RPostgres` is better maintained and I experienced less problems.
 
@@ -447,8 +459,8 @@ After storing all the connection details in some variables, we can finally creat
 library(RPostgres)
 
 # Login data
-user <- "gast_vowa"
-password <- scan("/Users/jguelat/Desktop/pass.txt", what = "character", quiet = TRUE)
+user <- "replace_with_your_login"
+password <- "replace_with_your_password"
 host <- "dbspatialdata1"
 database <- "research"
 
@@ -460,7 +472,7 @@ After that we need to import the data with a query, using again the `st_read()` 
 
 We can also specify a SQL query to import the data, like for the `cantons2` data set. Using this kind of query, we are fully flexible. We can for example specify the attributes we want to import, specific data filters, we can even join different tables together (by attributes or even spatially). Once again we have to specify the schema, but this is done a bit differently.
 
-Once we have our `sf` objects, we still need to disconnect the database. The cantonal_boundaries_ch data set contains all the cantonal boundaries in Switzerland. The data is provided by Swisstopo (swissBOUNDARIES3D).
+Once we have our `sf` objects, we still need to disconnect the database. The cantonal_boundaries_ch data set contains all the cantonal boundaries in Switzerland. The data is provided by Swisstopo ([swissBOUNDARIES3D](https://www.swisstopo.admin.ch/en/landscape-model-swissboundaries3d)).
 
 ```{r}
 #| eval: false
@@ -480,7 +492,7 @@ cantons2
 
 ### Writing vector data
 
-When you create or modify a GIS data set with `sf` you'll need to export it to some standard GIS format if you want to share it with colleagues, open it in another GIS software, or simply archive it. I do not recommend using R workspaces (.Rdata files) to share or store GIS data. For exporting vector data, we are going to use the `st_write()` function. Like the `st_read()` function, it uses the GDAL library, so you'll be able to export in many different formats. You can specify the format explicitly, otherwise `sf` will try to guess it based on the file extension.
+When you create or modify a GIS data set with `sf` you'll need to export it to some standard GIS format if you want to share it with colleagues, open it in another GIS software, or simply archive it. I do not recommend using R workspaces (.Rdata files) to share or store GIS data. For exporting vector data, we are going to use the `st_write()` function. Like the `st_read()` function, it uses the GDAL library, so you'll be able to export in many different formats. You can specify the format explicitly, otherwise `sf` will try to guess it based on the file extension. It is also possible to export to a PostGIS database using an approach similar to the one we used for importing.
 
 #### Exporting to GeoPackage
 
@@ -506,9 +518,32 @@ If you want to delete a data set, you can use the `st_delete()` function. Think 
 st_delete("export/birds.gpkg", "observations2")
 ```
 
+#### Exporting to CSV
+
+It is usually a better option to export a GeoPackage, but sometimes you'll still need to export your data to CSV. When you share such a file, always add metadata about the CRS you used. Since CSV is not a GIS format, we need a way to store the geometries. This is easy for point data since we can always add columns with the coordinates. For line and polygon data we need to find another solution, for example store the WKT in a new column.
+
+```{r}
+#| echo: false
+#| output: false
+if(file.exists("export/birds.csv")) {file.remove("export/birds.csv")}
+if(file.exists("export/municipalities.csv")) {file.remove("export/municipalities.csv")}
+```
+
+We can use the `layer_options` argument of the `st_write()` function to export point data with the additional columns for the *x* and *y* coordinates. These additional options are sent directly to the GDAL library which does the export.
+
+```{r}
+st_write(obs, "export/birds.csv", layer_options = "GEOMETRY=AS_XY")
+```
+
+For polygon and line data, we can do something similar to get a new column with the WKT geometry. Since commas are used in the WKT format, it might be a good idea to use another separator for the CSV file. Note that you'll probably get into troubles if your geometries have a lot of vertices.
+
+```{r}
+st_write(muni, "export/municipalities.csv", layer_options = c("GEOMETRY=AS_WKT", "SEPARATOR=SEMICOLON"), quiet = TRUE)
+```
+
 #### Exporting to Shapefile
 
-Please don't!
+Really??? Please don't!
 
 ### Basic geometric computations
 

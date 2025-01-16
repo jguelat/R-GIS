@@ -5,6 +5,8 @@
 .Ruserdata
 .DS_Store
 export/birds.gpkg
+export/birds.csv
+export/municipalities.csv
 export/dem.csv
 export/dem1.tif
 export/dem2.tif
