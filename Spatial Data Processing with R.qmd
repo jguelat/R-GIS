@@ -423,6 +423,17 @@ obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
 obs
 ```
 
+If you have data in WGS84, your geometry columns will probably be named longitude and latitude. In this case remember that longitude corresponds to the *x* coordinate and latitude to the *y* coordinate. This can be sometimes confusing because most geographic CRSs have a "reversed" axis order (which means latitude is stored before longitude). To be honest the situation is even more complicated than that, since in geodesy, the convention is to let the x axis point to the North and the y axis to the East (more information: <https://wiki.osgeo.org/wiki/Axis_Order_Confusion>).
+
+Fortunately, thanks to the great job done by the programmers of the PROJ and GDAL libraries, you don't really have to think about all this chaos. Just remember the rule mentioned above and you should be safe 99.99% of the time. You should thus use (note the different value for the `crs` argument):
+
+```{r}
+#| eval: false
+obs_wgs <- read.csv("data/observations_wgs.csv")
+obs_wgs <- st_as_sf(obs_wgs, coords = c("lon", "lat"), crs = "EPSG:4326")
+```
+
+
 #### Importing from a PostGIS database
 
 PostGIS is a famous open-source extension for the PostgreSQL database management system. It allows storing all kind of GIS data inside a database and perform hundreds of typical GIS analyses. The Swiss Ornithological Institute is using PostGIS to store almost all its bird data and a lot of other GIS data sets. If you have a laptop provided by the institute and you have access to the institute internal network (via cable or private Wi-Fi, not the public one), you should be able to run the following code.
