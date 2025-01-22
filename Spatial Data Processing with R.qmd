@@ -1,18 +1,38 @@
 ---
 title: Spatial Data Processing with R
 author:
-  - name: Dr. Jérôme Guélat
+  - name: Jérôme Guélat
+    degrees: PhD
     orcid: 0000-0003-1438-4378
     affiliation:
       - name: Swiss Ornithological Institute
         url: https://www.vogelwarte.ch/en
 date: today
+license: "CC BY-NC-ND 4.0"
+copyright: 
+  holder: Jérôme Guélat
+  year: 2023
+citation:
+  publisher: Swiss Ornithological Institute
+  issued: 2023
+  type: report
+  url: https://www.github.com/jguelat/R-GIS
+keywords:
+  - GIS
+  - R Spatial
+  - Spatial analyses
+  - Geoprocessing
+  - Cartography
+  - Static maps
+  - Dynamic maps
+bibliography: references.bib
+csl: american-medical-association.csl
 title-block-banner: true
 format: html
 page-layout: full
 number-sections: true
 toc: true
-toc-depth: 3
+toc-depth: 4
 toc-location: left
 toc-title: ""
 code-fold: false
@@ -26,28 +46,15 @@ set.seed(555)
 Sys.setenv(PROJ_LIB = "")
 ```
 
-## Preparation
+## Preface
 
-In order to run the code for this workshop, you'll need the following packages. You can use the following code to install them. All the required dependencies will be automatically installed. The most important ones are `sf`, `terra`, `tmap` and `mapview`.
+The first version of this tutorial was created for a course given at the [Swiss Ornithological Institute](https://www.vogelwarte.ch/en){target="_blank"} in 2023. Researchers and students in ecology were the original audience but the whole material can be used by anybody who wants to learn more about how to perform GIS analyses and design maps with the R statistical programming language. 
 
-::: callout-important
-Please also update to the latest version of R, otherwise you may get packages that are not fully up-to-date.
-:::
+My goal was to combine a very general and basic introduction to GIS with some sort of cookbook showing how to perform common GIS analyses and create maps with R. The introductory sections should provide enough information for readers with no or little GIS experience in order to understand the rest of the material. You're welcome to skip them, especially if you understand GIS data models and how GIS data is stored in R.
 
-``` r
-install.packages("sf")
-install.packages("terra")
-install.packages("spatstat.random")
-install.packages("spdep")
-install.packages("tmap")
-install.packages("mapview")
-install.packages("tmaptools")
-install.packages("maptiles")
-install.packages("leaflet.extras2")
-install.packages("leafsync")
-```
+The cookbook part of the tutorial is a collection of analyses and mapping techniques that I regularly use in my job. Most of them are standard GIS procedures, but you'll also find more advanced topics. There are two ways to run the code snippets in this tutorial. You can either run everything, starting with the first section and continuing with the others. Or, if you prefer the cookbook approach, I also included a collapsible code snippet at the start of each section that will allow you to get all the required data and load packages for this section only.
 
-The data you'll need for the workshop is available on the GitHub repository (<https://github.com/jguelat/R-GIS>). You'll also find all the code needed to re-create this document.
+None of this content could have been written without the incredible work done by the R-spatial community. I'd especially like to thank all the software developers who created and are maintaining the R software, the R packages and the open-source libraries used in these packages!
 
 ## Introduction
 
@@ -55,15 +62,15 @@ The data you'll need for the workshop is available on the GitHub repository (<ht
 
 You've probably already used a more traditional GIS software such as QGIS or ArcGIS Pro, you've maybe even heard that many GIS specialists use the Python programming language. Then why would you start using R, a statistic software, to perform your GIS analyses and make maps? I will only outline a few advantages and disadvantages in this introduction.
 
-A lot of ecological data you're going to analyse has a spatial component and it's convenient to perform everything in the same software. You will not need to transfer files and everything will be in the right format for subsequent statistical analyses. Moreover, most of you already know R and it's definitely easier to extend a bit you knowledge to include GIS analyses than to learn how to use a new software or how to code in Python. Fortunately, there's a really active community of R-users doing GIS, so you will not be alone and you'll easily find a lot of documentation online. There's also an incredibly large number of packages on CRAN for spatial data processing or analysis. You'll find an overview on the [CRAN Task View: Analysis of Spatial Data](https://cran.r-project.org/web/views/Spatial.html).
+A lot of ecological data you're going to analyse has a spatial component and it's convenient to perform everything in the same software. You will not need to transfer files and everything will be in the right format for subsequent statistical analyses. Moreover, most of you already know R and it's definitely easier to extend a bit you knowledge to include GIS analyses than to learn how to use a new software or how to code in Python. Fortunately, there's a really active community of R-users doing GIS, so you will not be alone and you'll easily find a lot of documentation online. There's also an incredibly large number of packages on CRAN for spatial data processing or analysis. You'll find an overview on the [CRAN Task View: Analysis of Spatial Data](https://cran.r-project.org/web/views/Spatial.html){target="_blank"}.
 
 Doing your GIS analyses with code is also a nice opportunity to make your research more reproducible. The whole data processing is documented and you and others can easily check and re-run everything. The same applies for maps, you can re-create them in a few seconds if the data changed. This is much harder if you only use a "point and click" GIS software.
 
-However there are some GIS tasks where R doesn't shine. I would for example never digitize GIS data or georeference images (such as old maps) using R. As we will see in the second part of the workshop, the cartographic capabilities of some R packages are really impressive. But it will still be easier to use a traditional GIS software if you need more specialized techniques such as complex labeling, advanced symbology or complex map layouts. The same applies if you need to use 3D vector data (with the exception of point clouds).
+However there are some GIS tasks where R doesn't shine. I would for example never digitize GIS data or georeference images (such as old maps) using R. As we will later, the cartographic capabilities of some R packages are really impressive. But it will still be easier to use a traditional GIS software if you need more specialized techniques such as complex labeling, advanced symbology or complex map layouts. The same applies if you need to use 3D vector data (with the exception of point clouds).
 
 ### GIS data models
 
-When we work with geographic data we need to decide how to model real world objects or concepts (buildings, forests, elevation, etc.) before we can use them in a computer with a GIS (Geographic Information System) software. GIS people mainly use 2 main data models: vector and raster. Other models exist, such as TINs, point clouds or meshes, but we won't cover them in this workshop.
+When we work with geographic data we need to decide how to model real world objects or concepts (buildings, forests, elevation, etc.) before we can use them in a computer with a GIS (Geographic Information System) software. GIS people mainly use 2 main data models: vector and raster. Other models exist, such as TINs, point clouds or meshes, but we won't cover them here.
 
 Vector data is normally used for high precision data sets and can be represented as points, lines or polygons. Properties of the represented features are stored as attributes. The vector types you will use depends of course on your own data and on the required analyses. For example: points could be appropriate for bird nests and sightings, lines for moving animals and linear structures (paths, rivers), and polygons for territories and land cover categories. Of course a river can also be modeled as a polygon if you're interested in its width (or you can also store its width as an attribute of the line).
 
@@ -73,7 +80,11 @@ High precision doesn't necessarily mean high accuracy! For example the coordinat
 Most vector data formats include some possibility to store information about measurement errors but this is actually very rarely used.
 :::
 
-The best known format for storing vector data is the shapefile, an old and inefficient format developed by ESRI. Even though the shapefile format is still widely used, it has a lot of limitations and problems (listed on the following website: <http://switchfromshapefile.org>). Nowadays GIS specialists advise to replace it with better alternatives such as the **GeoPackage** format. Every modern GIS software can read and write GeoPackages and the format is also completely open-source. It is also published as a standard by the Open Geospatial Consortium (OGC) which makes it a future-proof alternative.
+The best known format for storing vector data is the shapefile, an old and inefficient format developed by ESRI. Even though the shapefile format is still widely used, it has a lot of limitations and problems (listed on the following website: <http://switchfromshapefile.org>{target="_blank"}). Nowadays GIS specialists advise to replace it with better alternatives such as the **GeoPackage** format. Every modern GIS software can read and write GeoPackages and the format is also completely open-source. It is also published as a standard by the Open Geospatial Consortium (OGC) which makes it a future-proof alternative.
+
+::: callout-important
+I strongly advise against using GeoPackages (or any other file database format) on cloud-storage platforms such as Dropbox, OneDrive or Google Drive, especially if you need to edit them! Most of the time everything will work fine, but the risk of corruption and/or data loss due to the synchronization mechanism is not negligible!
+:::
 
 Raster data is basically an image divided into cells (pixels) of constant size, and each cell has an associated value. Satellite imagery, topographic maps and digital elevation models (DEM) are typical examples where the raster data model is appropriate. A raster data set can have several layers called bands, for example most aerial images have at least three bands: red, green and blue. In the raster data model, specific geographic features are aggregated to a given resolution to create a consistent data set, associated with a loss of precision. The resolution used to aggregate can have a large influence of some analyses and must be thought of carefully.
 
@@ -85,13 +96,37 @@ Vector data: use the GeoPackage format
 Raster data: use the GeoTiff format
 :::
 
+### Getting ready
+
+In order to run the code in this tutorial, you'll need the following packages. You can use the following code to install them. All the required dependencies will be automatically installed. The most important ones are `sf`[@pebesma_simple_2018], `terra`[@hijmans_terra_2023], `tmap`[@tennekes_tmap_2023] and `mapview`[@appelhans_mapview_2023].
+
+::: callout-important
+Please also update to the latest version of R, otherwise you may get packages that are not fully up-to-date.
+:::
+
+``` r
+install.packages("sf")
+install.packages("terra")
+install.packages("lwgeom")
+install.packages("spatstat.random")
+install.packages("spdep")
+install.packages("tmap")
+install.packages("mapview")
+install.packages("tmaptools")
+install.packages("maptiles")
+install.packages("leaflet.extras2")
+install.packages("leafsync")
+```
+
+The required data is available on the GitHub repository (<https://github.com/jguelat/R-GIS>{target="_blank"}). You'll also find all the code needed to re-create this document.
+
 ## Vector data
 
 ### Vector data model
 
 The main vector types are points, lines and polygons (or a combination thereof) and the point is the base of all these types. For example a simple line consists of 2 connected points, similarly an ordered sequence of connected points will represent a more complex line (often called a polyline). A simple polygon will be modeled as an external ring, which is a special type of polyline where the first and last points are identical. In the case of lines and polygons we often speak of vertices to describe these points. Things can be a bit more complex, for example a polygon could have a hole which is modeled as an internal ring.
 
-The **Simple Feature** standard ([full documentation](https://portal.ogc.org/files/?artifact_id=25355)) was developed to be sure that we all speak the same language when describing vector elements. The specification describes 18 geometry types, but don't worry only 7 of them will be useful for us. The following figure shows these 7 types (source: Lovelace *et al.*, 2019):
+The **Simple Feature** standard ([full documentation](https://portal.ogc.org/files/?artifact_id=25355){target="_blank"}) was developed to be sure that we all speak the same language when describing vector elements. The specification describes 18 geometry types, but don't worry only 7 of them will be useful for us. The following figure shows these 7 types (source: Lovelace *et al.*, 2019):
 
 ![](figures/sf-classes.png)
 
@@ -101,7 +136,7 @@ A feature represents a geographic entity modeled by one of these types. For exam
 The feature type is usually defined for the whole vector data set, and not per feature (actually `sf` lets you do that but this will brings you all sorts of troubles). For example, if you know that your data set will contain POLYGON and MULTIPOLYGON features, then you will have to use the MULTIPOLYGON type for all of them.
 :::
 
-In most GIS softwares (including R), simple features are internally encoded using the well-known binary (WKB) or well-known text (WKT) standards. As the name mentions, WKB is a binary format and hence not easily readable by normal humans. The WKT format is encoding exactly the same information as WKB, but in a more human friendly way. Here are some examples of WKT-encoded features (check the [Wikipedia page](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry) if you need more):
+In most GIS softwares (including R), simple features are internally encoded using the well-known binary (WKB) or well-known text (WKT) standards. As the name mentions, WKB is a binary format and hence not easily readable by normal humans. The WKT format is encoding exactly the same information as WKB, but in a more human friendly way. Here are some examples of WKT-encoded features (check the [Wikipedia page](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry){target="_blank"} if you need more):
 
 -   a point: `POINT (10 5)`
 -   a linestring made of 3 points: `LINESTRING (1 1, 2 4, 5 10)`
@@ -123,9 +158,7 @@ library(sf)
 
 When you first load the `sf` package, it will provide you with version information about some important open-source GIS libraries it uses. In a few rare cases, some functions will only be available if you use recent version of these libraries. If you use `sf` on Windows or Mac and install it from CRAN, they will be included inside the `sf` package and there's no easy way to update them. These libraries are used in almost all open-source GIS software and even in some commercial ones. GDAL takes care of reading and writing your GIS files and can read 99.9% of all the existing GIS formats (the vector part of the GDAL library is often called OGR); GEOS is a Euclidean planar geometry engine and is used for all the common GIS analyses (intersection, union, buffer, etc.); PROJ is responsible for all the coordinate reference systems operations. The s2 library is a spherical geometry engine which is active by default for computations when using unprojected data.
 
-::: callout-important
-## A bit of history
-
+::: {.callout-important title="A bit of history"}
 The availability of the `sf` package was a massive change in the "R/GIS" ecosystem (often called R-Spatial). In the old days we used a combination of several packages to process GIS vector data in R. The spatial classes (and some functions) were defined in the `sp` package, the import/export of data was managed by the `rgdal` package, and the geometric operations were available in the `rgeos` package. You'll find a lot of code using these packages on the internet. Please refrain from using them since they are not maintained anymore. The packages `rgdal` and `rgeos` were removed from CRAN, `sp` is still available. Moreover the `sf` package is definitely more powerful and much faster.
 :::
 
@@ -140,9 +173,7 @@ World
 
 We see the `World` object is stored as a data frame with an additional geometry column (note that the name of the geometry column doesn't need to be 'geometry'). The content of the geometry column is displayed using the WKT format. A programmer would say these objects are instances of the `sf` class, and I will thus call them `sf` objects. R is also giving us more information, like the coordinate reference system used (more on that later) and the number of dimensions (i.e. XY, XYZ or XYZM).
 
-::: {.callout-note collapse="true" icon="false"}
-## Question: why is the MULTIPOLYGON type appropriate?
-
+::: {.callout-note collapse="true" icon="false" title="Question: why is the MULTIPOLYGON type appropriate?"}
 Don't forget that each feature (i.e. each row of the data frame) represents a country, and some countries are made up of several distinct pieces of land (e.g., islands, exclaves). That's why we need the MULTIPOLYGON type. And since the type apply to the whole data set, even countries with a single geometry (like Switzerland) will need to be MULTIPOLYGONS.
 :::
 
@@ -167,10 +198,12 @@ Note that the color scale was adapted depending on the available values in the f
 plot(st_geometry(World))
 ```
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
+:::callout-note
+We haven't done it here, but, as we will see later, it is better to first project everything using an appropriate projection when you want to plot global data (like the previous world maps).
+:::
 
-Play a little bit with the `World` data set, try different functions that you would normally use with a data frame. Import the `redlist` data from the file `red_list_index.csv` (source: <https://stats.oecd.org>) and join it to the `World` data frame to add new attributes. Plot a world map using one of the new attributes.
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
+Play a little bit with the `World` data set, try different functions that you would normally use with a data frame. Import the `redlist` data from the file `red_list_index.csv` (source: <https://stats.oecd.org>{target="_blank"}) and join it to the `World` data frame to add new attributes. Plot a world map using one of the new attributes.
 
 ```{r}
 #| eval: false
@@ -182,6 +215,14 @@ plot(world2[,"index_2020"])
 :::
 
 ### Structure of `sf` objects
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+```
+:::
 
 Most of the time you won't need to create your own `sf` objects from scratch since you'll import some existing GIS data. But if you need to, there are special functions to help you. This is also a good way to get a better understanding of the structure of `sf` objects. The standard process is shown in the following figure (source: Lovelace *et al.*, 2019):
 
@@ -262,6 +303,10 @@ pts_sf <- st_as_sf(pts_data)
 ```
 :::
 
+::: callout-note
+You've now probably noticed that most functions in the `sf` package have an `st_` prefix. This is a reference (and probably homage) to PostGIS, an extension allowing to store and query GIS data in the PostgreSQL database management system. All PostGIS functions start with the `ST_` prefix, which stands for "Spatial Type".
+:::
+
 We process similarly to create other geometry types from scratch, the only difference is that we now need matrices to store the vertices of the lines and polygons instead of a simple vector, and for multilinestrings, (multi-)polygons and geometry collections, we need more lists to encapsulate everything. If you're not sure how to create geometries, the `sf` documentation provides examples for all the geometry types. Look for the following functions: `st_point()`, `st_linestring()`, `st_polygon()`, `st_multipoint()`, `st_multilinestring()`, `st_multipolygon()`, `st_geometrycollection()`. Here's a more complex example showing how to create a multipolygon (including one geometry with a hole) inside an `sfg` object. The next steps (collecting geometries in an `sfc` object, adding attributes and store as an `sf` object) are exactly the same as before.
 
 ```{r}
@@ -291,15 +336,13 @@ pts_sf <- st_as_sf(pts_data, wkt = "geometry", crs = "EPSG:2056")
 ```
 :::
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
-
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 Try to build your own `sfc` and `sf` objects using either `st_sfc()` and `st_sf()` or `st_as_sfc()` and `st_as_sf()`.
 :::
 
 ## Raster data
 
-As we saw above, a raster data set is basically an image, which is the same as a grid of pixels. These pixels are often called cells. Most raster data sets you will encounter will have square cells with a constant size (also called resolution), and we will only focus on these during this workshop. However don't forget that other kind of grids, for example sheared or curvilinear, also exist. This is sometimes needed depending on the coordinate reference system used to store the data, or can be caused by some reprojections.
+As we saw above, a raster data set is basically an image, which is the same as a grid of pixels. These pixels are often called cells. Most raster data sets you will encounter will have square cells with a constant size (also called resolution), and we will only focus on these in this tutorial. However don't forget that other kind of grids, for example sheared or curvilinear, also exist. This is sometimes needed depending on the coordinate reference system used to store the data, or can be caused by some reprojections.
 
 Rasters are perfect for storing continuous values contained in a large area (called the extent of the raster). Digital elevation models are a typical example of such data, each cell is used to store an elevation value. You will also find rasters containing discrete values, these are often used to store landcover or landuse data sets. Note that, unlike vector data, it is impossible to store overlapping features in the same data set.
 
@@ -309,25 +352,21 @@ We saw that vector data sets can store multiple attributes for a single feature.
 
 Performing computations on raster data sets is usually very efficient and faster than using vector data. This is due to the fact that rasters are stored in some kind of matrix formats with some extra information such as the coordinate reference system and the origin of the raster. It this thus possible to use highly efficient linear algebra libraries. The mathematical operations performed on raster cells are called map algebra.
 
-For this workshop we will use the `terra` package to work with raster data. This package has everything needed to import, analyse, visualize and export raster data sets. Like the `sf` package, it is also using the GDAL library for the import/export operations, which means it can open almost every raster data format. Unlike the `sf` package, `terra` will not import the full data sets in memory but only create a pointer to the data and then read smaller blocks of data successively. This allows working with very large rasters with a relatively small memory footprint. The amount of functions available in the `terra` package is similar to typical GIS software.
+We will use the `terra` package to work with raster data. This package has everything needed to import, analyse, visualize and export raster data sets. Like the `sf` package, it is also using the GDAL library for the import/export operations, which means it can open almost every raster data format. Unlike the `sf` package, `terra` will not import the full data sets in memory but only create a pointer to the data and then read smaller blocks of data successively. This allows working with very large rasters with a relatively small memory footprint. The amount of functions available in the `terra` package is similar to typical GIS software.
 
-::: callout-important
-## Rasters and R workspaces
-
+::: {.callout-important title="Rasters and R workspaces"}
 Since `terra` only stores a pointer to the raster data set, this means the actual data set won't be included if you save your session in an R workspace (.Rdata files). If you really want to include it in your workspace, you can use the `wrap()` function. Note that this is also needed if you want to pass raster data over a connection that serializes, e.g. to a computer cluster.
 :::
 
 There is another famous R package to process raster data, the `stars` package. It is especially useful if you need to work with "irregular" rasters (sheared, curvilinear, etc.) or with complex datacubes. It is also tidyverse-friendly and the syntax is closed to the one use in `sf`. However the number of available functions is (still) much lower than in `terra`. If you need to use both packages, it is fortunately easy to convert raster objects from `terra` to `stars` (using the function `st_as_stars()`), and the other way round (using the function `rast()`).
 
-::: callout-note
-## A bit of history
-
-A revolution happened in 2010 in the small world of R-Spatial when the `raster` package was released. People were able to perform analyses using raster data sets in R instead of using a standard GIS software. The package has been maintained during many years, and many functions were added. However its developer decided to create a new package from scratch in order to improve speed and memory efficiency, the `terra` package was born. You will often find a lot of R code using the `raster` package on the web. Fortunately it is quite easy to adapt code written for the `raster` package to `terra`. The functions have similar names (sometimes even identical) and everything that was available in `raster` should also be available in `terra`. Actually the recent versions of `raster` even use `terra` in the background instead of the original `raster` code.
+::: {.callout-note title="A bit of history"}
+A revolution happened in 2010 in the small world of R-spatial when the `raster` package was released. People were able to perform analyses using raster data sets in R instead of using a standard GIS software. The package has been maintained during many years, and many functions were added. However its developer decided to create a new package from scratch in order to improve speed and memory efficiency, the `terra` package was born. You will often find a lot of R code using the `raster` package on the web. Fortunately it is quite easy to adapt code written for the `raster` package to `terra`. The functions have similar names (sometimes even identical) and everything that was available in `raster` should also be available in `terra`. Actually the recent versions of `raster` even use `terra` in the background instead of the original `raster` code.
 :::
 
 ## Coordinate reference systems
 
-The majority of normal people will get scared if there's some problem to solve involving coordinate reference systems or projections. That's why I will keep this part really short and only show you the stuff you will need to perform standard GIS analyses with R. If you want to read more about this (extremely interesting) topic, I invite you to read the following book chapters: <https://r.geocompx.org/spatial-class.html#crs-intro> and <https://r-tmap.github.io/tmap-book/geodata.html#crs>.
+The majority of normal people will get scared if there's some problem to solve involving coordinate reference systems or projections. That's why I will keep this part really short and only show you the stuff you will need to perform standard GIS analyses with R. If you want to read more about this (extremely interesting) topic, I invite you to read the following book chapters: <https://r.geocompx.org/spatial-class.html#crs-intro>{target="_blank"} and <https://r-tmap.github.io/tmap-book/geodata.html#crs>{target="_blank"}.
 
 There is a famous expression saying "spatial is special"... One of the main reasons is that such data will have an associated location and you thus need a reference frame to describe this location. This reference frame is called a coordinate reference system (CRS) in the GIS world. CRSs can be either geographic or projected.
 
@@ -335,19 +374,19 @@ There is a famous expression saying "spatial is special"... One of the main reas
 When you're working with GIS data, you should always know the CRS you're using. Otherwise coordinates are just numbers without a reference frame. When you share GIS data, make sure the CRS is always defined in the data set or documented in some other way. The CRS of a vector data set can be queried with the `st_crs()` function, for a terra object you should use the `crs()` function.
 :::
 
-A geographic CRS will identify locations on a spheroid or an ellipsoid using 2 values: latitude and longitude. The shape of the Earth is actually a geoid, but it is too complex to perform computations and thus one has to use approximations. The spheroid is making the assumption that the Earth is a sphere, while the ellipsoid is a better approximation accounting for the fact that our planet is a bit compressed (flatter at the North and South Poles). Geographic coordinate systems are not using a projection! All the computations (distances, buffers, etc.) have to happen on the spheroid/ellipsoid, which makes things more complex. It is easy to make mistakes when working with geographic CRSs, and even smart people fell in this trap (e.g. <https://georeferenced.wordpress.com/2014/05/22/worldmapblunders>).
+A geographic CRS will identify locations on a spheroid or an ellipsoid using 2 values: latitude and longitude. The shape of the Earth is actually a geoid, but it is too complex to perform computations and thus one has to use approximations. The spheroid is making the assumption that the Earth is a sphere, while the ellipsoid is a better approximation accounting for the fact that our planet is a bit compressed (flatter at the North and South Poles). Geographic coordinate systems are not using a projection! All the computations (distances, buffers, etc.) have to happen on the spheroid/ellipsoid, which makes things more complex. It is easy to make mistakes when working with geographic CRSs, and even smart people fell in this trap (e.g. <https://georeferenced.wordpress.com/2014/05/22/worldmapblunders>{target="_blank"}).
 
-Projected CRSs are based on geographic CRSs but include an additional step: a projection on a flat surface. When using a projected CRS, locations are described using Cartesian coordinates called easting and northing (x and y). Projecting a spherical or ellipsoidal surface on a plane will cause deformations. These will affect four properties of the surface: areas, distances, shapes and directions. A projected CRS can preserve only one or two of these properties. There exists a ton of different projections and all of them make different compromises, some are even totally useless (check this beautiful xkcd comic: <https://xkcd.com/977>). Choosing a projection can be challenging, especially if your data covers a very large area. The following websites allow you to visualize the main projection types: <https://www.geo-projections.com> and <https://map-projections.net/singleview.php>. The second website also provides a nice tool to visualize distortions called a Tissot indicatrix. Fortunately, if your data is within a "smallish" area, it is relatively easy to find a good projected CRS that has only minimal distortions. Almost every country has its own recommended projected CRS (or CRSs), and if your data covers several countries, you can use a UTM (Universal Transverse Mercator) coordinate system.
+Projected CRSs are based on geographic CRSs but include an additional step: a projection on a flat surface. When using a projected CRS, locations are described using Cartesian coordinates called easting and northing (x and y). Projecting a spherical or ellipsoidal surface on a plane will cause deformations. These will affect four properties of the surface: areas, distances, shapes and directions. A projected CRS can preserve only one or two of these properties. There exists a ton of different projections and all of them make different compromises, some are even totally useless (check this beautiful xkcd comic: <https://xkcd.com/977>{target="_blank"}). Choosing a projection can be challenging, especially if your data covers a very large area. The following websites allow you to visualize the main projection types: <https://www.geo-projections.com>{target="_blank"} and <https://map-projections.net/singleview.php>{target="_blank"}. The second website also provides a nice tool to visualize distortions called a Tissot indicatrix. Fortunately, if your data is within a "smallish" area, it is relatively easy to find a good projected CRS that has only minimal distortions. Almost every country has its own recommended projected CRS (or CRSs), and if your data covers several countries, you can use a UTM (Universal Transverse Mercator) coordinate system.
 
 ::: callout-tip
 It is almost always easier to work with a projected CRS, except if your data is really global (or covering a really large area, like a continent). Moreover, most GIS software will (still) make the assumption that you're data is on a flat plane, even if you're working with a geographic CRS. The `sf` package is kind of an exception since it will actually perform calculations on a spheroid if you use a geographic CRS, thanks to the s2 library.
 :::
 
 ::: callout-important
-The CRS used by almost all mapping websites (OpenStreetMap, Google Maps, etc.) should never be used for any analysis. It is a slightly modified version of the Mercator projection called Web Mercator or Pseudo-Mercator. It has some advantages allowing good visualization speed, but the distortions are massive. Check the following website: <https://www.thetruesize.com>.
+The CRS used by almost all mapping websites (OpenStreetMap, Google Maps, etc.) should never be used for any analysis. It is a slightly modified version of the Mercator projection called Web Mercator or Pseudo-Mercator. It has some advantages allowing good visualization speed, but the distortions are massive. Check the following website: <https://www.thetruesize.com>{target="_blank"}.
 :::
 
-With so many CRSs available, we need a way to classify them. That's what the EPSG (European Petroleum Survey Group) started doing a few years ago. They collected and documented most available CRSs in a data set which is now called the EPSG Geodetic Parameter Dataset (<https://epsg.org/home.html>). In this data set, every CRS has a unique identification number that can be used in a GIS software instead of writing the full definition of the CRS. The best available transformations between CRSs are also defined. Sadly this data set is still missing a few interesting CRSs and was thus completed by other companies such as ESRI. This is the reason why you'll sometimes see ESRI codes instead of EPSG for some CRSs. To avoid confusion, CRSs are usually referenced by an SRID (Spatial Reference System Identifier), which is made of two components, an authority (such as EPSG or ESRI) and an identifier. If no authority is mentioned you can usually assume it's coming from the EPSG data set (especially in the open-source GIS world). For clarity, I recommend always specifying the full SRID when working with CRSs. With `sf` and `terra` (and most other GIS packages), the SRID has to be written in the form "authority:identifier".
+With so many CRSs available, we need a way to classify them. That's what the EPSG (European Petroleum Survey Group) started doing a few years ago. They collected and documented most available CRSs in a data set which is now called the EPSG Geodetic Parameter Dataset (<https://epsg.org/home.html>{target="_blank"}). In this data set, every CRS has a unique identification number that can be used in a GIS software instead of writing the full definition of the CRS. The best available transformations between CRSs are also defined. Sadly this data set is still missing a few interesting CRSs and was thus completed by other companies such as ESRI. This is the reason why you'll sometimes see ESRI codes instead of EPSG for some CRSs. To avoid confusion, CRSs are usually referenced by an SRID (Spatial Reference System Identifier), which is made of two components, an authority (such as EPSG or ESRI) and an identifier. If no authority is mentioned you can usually assume it's coming from the EPSG data set (especially in the open-source GIS world). For clarity, I recommend always specifying the full SRID when working with CRSs. With `sf` and `terra` (and most other GIS packages), the SRID has to be written in the form "authority:identifier".
 
 The following CRSs are especially interesting for us:
 
@@ -360,10 +399,13 @@ The following CRSs are especially interesting for us:
 | EPSG:8857 | Equal Earth Greenwich | Nice equal-area projection for world maps |
 | ESRI:54030 | Robinson | Aesthetically pleasing projection for world maps |
 
-::: callout-important
-## Proj4strings
 
+::: {.callout-important title="Proj4strings"}
 When looking for examples on the web, you will often find code snippets using what is called a proj4string to define a CRS or to reproject data. For example the proj4string for the current Swiss CRS looks like this: `+proj=somerc +lat_0=46.9524055555556 +lon_0=7.43958333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs +type=crs`. This was the standard way of describing CRSs until a few years ago. You should NOT use these strings, instead always use the EPSG (or another authority) number to be on the safe side. Otherwise you may get small to medium position errors when reprojecting your data.
+:::
+
+::: callout-important
+If you search for the EPSG database on your favorite search engine, you may find the website <https://epsg.io>{target="_blank"}. Please do not use it! It is not the official EPSG website, it doesn't use the latest version of the EPSG database, and therefore some definitions of CRSs are outdated.
 :::
 
 You can easily explore how CRSs are stored in modern GIS software. For example if you want to inspect the current Swiss CRS:
@@ -374,9 +416,7 @@ st_crs("EPSG:2056")
 
 We get the full description of the CRS with all its parameters. The format used is unfortunately also named WKT, but this has nothing to do with the WKT format used to define geometries. If you use EPSG codes, you can also simply enter the code as an integer (please don't do this to avoid confusion).
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
-
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 Try to understand the output of the `st_crs()` function. Try it with a geographic CRS.
 :::
 
@@ -384,9 +424,17 @@ Try to understand the output of the `st_crs()` function. Try it with a geographi
 
 ### Reading vector data
 
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+```
+:::
+
 We had a look at the gory details of the internal structure `sf` objects. However most of the time you will not create such objects on your own but rather rely on the `sf` package to create the right structure when you import existing GIS data. The `sf` package is using the GDAL (Geospatial Data Abstraction Library) library to read GIS files, and this means you will be able to import almost all existing GIS vector formats. If you want to check all the available formats, you can use the `st_drivers()` function. Sometimes you will not get a standard GIS data set but a simple CSV (or Excel) file containing coordinates and related attributes. We will now see how to import these different data types in order to use them with the `sf` package.
 
-#### Importing a GeoPackage
+#### Import a GeoPackage
 
 The GeoPackage format is the best available open format to store vector data. It is based on the SQLite database format which is the most used file-based database nowadays. You can think of it as a special folder containing one or several GIS data sets. Since we normally don't know in advance if a GeoPackage contains one or more data sets, we first have to inspect it.
 
@@ -410,9 +458,9 @@ muni
 print(muni, n = 2)
 ```
 
-The output contains basic information about the data set, and the first features are shown with all the attributes. This municipalities data set is an extract of the [swissBOUNDARIES3D](https://www.swisstopo.admin.ch/en/landscape-model-swissboundaries3d) data set provided by Swisstopo, the streets data set is an extract of the [swissTLM3D](https://www.swisstopo.admin.ch/en/landscape-model-swisstlm3d) data set, also provided by Swisstopo.
+The output contains basic information about the data set, and the first features are shown with all the attributes. This municipalities data set is an extract of the [swissBOUNDARIES3D](https://www.swisstopo.admin.ch/en/landscape-model-swissboundaries3d){target="_blank"} data set provided by Swisstopo, the streets data set is an extract of the [swissTLM3D](https://www.swisstopo.admin.ch/en/landscape-model-swisstlm3d){target="_blank"} data set, also provided by Swisstopo.
 
-#### Importing a Shapefile
+#### Import a Shapefile
 
 If you really need to import a Shapefile, you should also use the `st_read()` function. Since Shapefiles cannot contain more than one data set, we only need to provide the first argument of the function. A Shapefile consists of several files with different extensions (.shp, .shx, etc.), we use the .shp extension by default when importing.
 
@@ -423,7 +471,7 @@ muni2
 
 This is actually the same data set as the one in the GeoPackage, however, note that `sf` is now using polygons instead of multipolygons. This is caused by the fact that the Shapefile format does not distinguish properly between the two types. The GDAL library will use the type polygons in this case, but you can still have a combination of polygons and multipolygons in the same data set.
 
-#### Importing a CSV file with coordinates
+#### Import a CSV file with coordinates
 
 If you have a table containing coordinates of point data (e.g. sites or bird sightings), you should use the `st_as_sf()` function. The first argument should be the data frame containing the data, and you also need to specify the names (or the numbers) of the columns containing the geographic coordinates, and the CRS used. The following data set was extracted from the bird sightings database of the Swiss Ornithological Institute.
 
@@ -435,7 +483,7 @@ obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
 obs
 ```
 
-If you have data in WGS84, your geometry columns will probably be named longitude and latitude. In this case remember that longitude corresponds to the *x* coordinate and latitude to the *y* coordinate. This can be sometimes confusing because most geographic CRSs have a "reversed" axis order (which means latitude is stored before longitude). To be honest the situation is even more complicated than that, since in geodesy, the convention is to let the x axis point to the North and the y axis to the East (more information: <https://wiki.osgeo.org/wiki/Axis_Order_Confusion>).
+If you have data in WGS84, your geometry columns will probably be named longitude and latitude. In this case remember that longitude corresponds to the *x* coordinate and latitude to the *y* coordinate. This can be sometimes confusing because most geographic CRSs have a "reversed" axis order (which means latitude is stored before longitude). To be honest the situation is even more complicated than that, since in geodesy, the convention is to let the x axis point to the North and the y axis to the East (more information: <https://wiki.osgeo.org/wiki/Axis_Order_Confusion>{target="_blank"}).
 
 Fortunately, thanks to the great job done by the programmers of the PROJ and GDAL libraries, you don't really have to think about all this chaos. Just remember the rule mentioned above and you should be safe 99.99% of the time. You should thus use (note the different value for the `crs` argument):
 
@@ -446,7 +494,7 @@ obs_wgs <- st_as_sf(obs_wgs, coords = c("lon", "lat"), crs = "EPSG:4326")
 ```
 
 
-#### Importing from a PostGIS database
+#### Import from a PostGIS database
 
 PostGIS is a famous open-source extension for the PostgreSQL database management system. It allows storing all kind of GIS data inside a database and perform hundreds of typical GIS analyses. The Swiss Ornithological Institute is using PostGIS to store almost all its bird data and a lot of other GIS data sets. If you have a laptop provided by the institute and you already accessed our database via QGIS, you should be able to run the following code. The process will be the same for all PostGIS databases.
 
@@ -472,7 +520,7 @@ After that we need to import the data with a query, using again the `st_read()` 
 
 We can also specify a SQL query to import the data, like for the `cantons2` data set. Using this kind of query, we are fully flexible. We can for example specify the attributes we want to import, specific data filters, we can even join different tables together (by attributes or even spatially). Once again we have to specify the schema, but this is done a bit differently.
 
-Once we have our `sf` objects, we still need to disconnect the database. The cantonal_boundaries_ch data set contains all the cantonal boundaries in Switzerland. The data is provided by Swisstopo ([swissBOUNDARIES3D](https://www.swisstopo.admin.ch/en/landscape-model-swissboundaries3d)).
+Once we have our `sf` objects, we still need to disconnect the database. The cantonal_boundaries_ch data set contains all the cantonal boundaries in Switzerland. The data is provided by Swisstopo ([swissBOUNDARIES3D](https://www.swisstopo.admin.ch/en/landscape-model-swissboundaries3d){target="_blank"}).
 
 ```{r}
 #| eval: false
@@ -490,11 +538,40 @@ cantons1
 cantons2
 ```
 
+#### Import from WKB
+
+You probably won't need to import geometries in the WKB format very often. GIS data should not be shared directly in this format. However, since it's the default format used to store geometries in the PostGIS database, you will maybe get one day a table with attributes and a single WKB column. The following table is a direct extract from a PostGIS database.
+
+```{r}
+obs_wkb <- read.csv("data/observations_wkb.csv")
+head(obs_wkb)
+```
+
+Unfortunately it is not possible to use the `st_read()` function to import such data, and the `st_as_sf()` function won't work either. In this case we need to first convert the WKB geometries into `sfc` objects. To do that we need to add an extra attribute using the `structure()` function to inform `sf` that we're using WKB geometries. After that we can use the `st_as_sfc()` function. The `EWKB = TRUE` means that we are using a WKB dialect called EWKB (Extended WKB) which also includes the SRID of the geometries. Once we have a vector of `sfc` objects, we remove the now useless column containing the WKB geometries and use the `st_sf()` function to combine the data frame with the geometries.
+
+```{r}
+geom <- st_as_sfc(structure(as.list(obs_wkb$wkb), class = "WKB"), EWKB = TRUE)
+obs_wkb <- subset(obs_wkb, select = -wkb)
+obs_wkb <- st_sf(obs_wkb, geom)
+obs_wkb
+```
+
 ### Writing vector data
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+```
+:::
 
 When you create or modify a GIS data set with `sf` you'll need to export it to some standard GIS format if you want to share it with colleagues, open it in another GIS software, or simply archive it. I do not recommend using R workspaces (.Rdata files) to share or store GIS data. For exporting vector data, we are going to use the `st_write()` function. Like the `st_read()` function, it uses the GDAL library, so you'll be able to export in many different formats. You can specify the format explicitly, otherwise `sf` will try to guess it based on the file extension. It is also possible to export to a PostGIS database using an approach similar to the one we used for importing.
 
-#### Exporting to GeoPackage
+#### Export to GeoPackage
 
 For a GeoPackage, you need to specify the name of the GeoPackage first (it will be automatically created if it doesn't exist) and the name of the data set that will be stored inside the GeoPackage. If you specify a GeoPackage that already exists, the data set will be added to it as a new table.
 
@@ -518,7 +595,7 @@ If you want to delete a data set, you can use the `st_delete()` function. Think 
 st_delete("export/birds.gpkg", "observations2")
 ```
 
-#### Exporting to CSV
+#### Export to CSV
 
 It is usually a better option to export a GeoPackage, but sometimes you'll still need to export your data to CSV. When you share such a file, always add metadata about the CRS you used. Since CSV is not a GIS format, we need a way to store the geometries. This is easy for point data since we can always add columns with the coordinates. For line and polygon data we need to find another solution, for example store the WKT in a new column.
 
@@ -541,13 +618,27 @@ For polygon and line data, we can do something similar to get a new column with 
 st_write(muni, "export/municipalities.csv", layer_options = c("GEOMETRY=AS_WKT", "SEPARATOR=SEMICOLON"), quiet = TRUE)
 ```
 
-#### Exporting to Shapefile
+#### Export to Shapefile
 
-Really??? Please don't!
+Really??? [Please don't](figures/simpsons.png){target="_blank"}!
 
 ### Basic geometric computations
 
-In this section we'll see how to perform some basic geometric computations on spatial data. For example let's how we can compute the area and perimeter of polygons, or the length of lines.
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+streets <- st_read("data/geodata.gpkg", "streets", quiet = TRUE)
+```
+:::
+
+In this section we'll see how to perform some basic geometric computations on spatial data, such as computing area, perimeter, length and centroids. We'll also learn how to display the coordinates of `sf` geometries.
+
+#### Areas and lengths
+
+As a first example, let's how we can compute the area and perimeter of polygons, or the length of lines.
 
 ```{r}
 st_area(muni)
@@ -558,8 +649,30 @@ head(st_length(streets))
 Note that the results always have a unit of measurement. This is a feature that is provided by `sf` and will occur will all functions giving some sort of measurement. This is compatible with the `units` package which allows easy conversions between different unit types. However this can sometimes be a problem if you need a "raw" value. In this case you can use the `as.numeric()` function to remove the units.
 
 ::: callout-note
-The `st_perimeter` function was not available in older versions of the `sf` package. The `lwgeom` package was needed to perform this computation.
+The `st_perimeter()` function was not available in older versions of the `sf` package. The `lwgeom` package was needed to perform this computation.
 :::
+
+If you use unprojected data (i.e., with a geographic CRS), `sf` will automatically use the `s2` library to compute areas, perimeters and lengths.
+
+```{r}
+st_area(World[1:5,])
+st_perimeter(World[1:5,])
+```
+
+The `s2` library performs its computations on a spheroid. For areas and lengths, it is possible to obtain a better approximation by using an ellipsoid. You can do this by turning off the `s2` library with the `sf_use_s2(FALSE)` function. In this case, `sf` will automatically use equivalent functions provided by the `lwgeom` package. These functions use algorithms from the GeographicLib library which are to my knowledge the most precise approximations you can currently get. Note that the `st_perimeter()` function won't be available if you do that. You'll need to transform the polygons to lines first (see @sec-typecasting for details), and then use the `st_length()` function. Don't forget to reactivate `s2` (using the `sf_use_s2(TRUE)` function) when you're done.
+
+```{r}
+sf_use_s2(FALSE)
+st_area(World[1:5,])
+st_length(st_cast(World[1:5,], "MULTILINESTRING"))
+sf_use_s2(TRUE)
+```
+
+::: callout-important
+You should normally not turn `s2` off. Computing areas and lengths (and distances, as we will see later) are probably the only valid cases where turning `s2` off is a good idea. For all other computations based on geographic CRSs you should NOT deactivate `s2`, otherwise you'll get results that will most probably be wrong.
+:::
+
+#### Centroids
 
 Computing the centroid of polygons is another useful operation that is easily computed using the `st_centroid()` function.
 
@@ -569,102 +682,167 @@ plot(st_geometry(muni))
 plot(st_geometry(muni_centroid), add = TRUE)
 ```
 
-Sometimes we also need to know the coordinates of the `sf` objects we're using. For points we of course get the coordinates of the points, for lines and polygons we get the coordinates of the vertices, with additional columns showing how to reconstruct the features.
+For this example, you can safely ignore the warning about attributes assumed to be constant. The output of the `st_centroid()` function will be a point data set with the same number of features and the same attributes as the data set used to compute the centroids. The function simply warns you that if the value of some attribute is not constant for some polygon, then the value of this attribute for the centroid probably doesn't make a lot of sense.
+
+:::callout-tip
+Centroids can be used to place labels inside polygons, but don't forget that polygons with strange shapes may not contain their own centroid. If you need to be sure that the point will be inside the polygon, use the `st_point_on_surface()` function.
+:::
+
+#### Extract coordinates
+
+Sometimes we also need to know the coordinates of the `sf` objects we're using. For points we of course get the coordinates of the points, for lines and polygons we get the coordinates of the vertices, with additional columns showing how to reconstruct the features (check the `st_coordinates()` help page to understand the meaning of L1, L2 and L3).
 
 ```{r}
 st_coordinates(muni_centroid)
 head(st_coordinates(muni))
 ```
 
-Centroid can be used to place labels inside polygons, but don't forget that polygons with strange shapes may not contain their centroid. If for some reason you need to be sure to have the point inside the polygon, use the `st_point_on_surface()` function.
+#### Common pitfalls
 
 Unfortunately geometric computations are not always that easy... Let's have a look at another example. We load another polygon layer and try to compute the area of each polygon.
 
 ```{r}
-temp <- st_read("data/geodata.gpkg", "wtf", quiet = TRUE)
-plot(temp, col = 1:nrow(temp))
-st_area(temp)
+bug <- st_read("data/geodata.gpkg", "wtf", quiet = TRUE)
+plot(bug, col = 1:nrow(bug))
+st_area(bug)
 ```
 
-Oops, these polygons look big enough but one of them seems to have an area of 0... Why is this happening? We need to talk a bit about geometric validity...
+Oops, these polygons look big enough but one of them seems to have an area of 0... Why is this happening? To understand the problem, we first need to talk a bit about geometric validity...
 
 ### Geometric validity
 
-When we had a look a the vector data model, we discovered the Simple Feature standard but we forgot an important part: geometric validity. Validity is defined a bit differently depending on the geometry engine used for the computations. First the good news: points are always valid! Lines are always valid for the GEOS engine used by `sf` but they are considered invalid by QGIS if they have self-intersections (such lines are called non-simple). Polygons are definitely invalid if they have self-intersections (like our example). The other invalid cases are shown on this website: <https://postgis.net/docs/using_postgis_dbmanagement.html#Valid_Geometry>. Using invalid geometries can be problematic for some analyses, such as computing areas.
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+bug <- st_read("data/geodata.gpkg", "wtf", quiet = TRUE)
+```
+:::
+
+When we had a look a the vector data model, we discovered the Simple Feature standard but we forgot an important part: geometric validity. Validity is defined a bit differently depending on the geometry engine used for the computations. First the good news: points are always valid! Lines are always valid for the GEOS engine used by `sf` but they are considered invalid by QGIS if they have self-intersections (such lines are called non-simple). Polygons are definitely invalid if they have self-intersections (like our example). The other invalid cases are shown on this website: <https://postgis.net/docs/using_postgis_dbmanagement.html#Valid_Geometry>{target="_blank"}. Using invalid geometries can be problematic for some analyses, such as computing areas.
 
 Normally we should expect official data sets to be valid but this is often not the case. You can check the validity of each feature using the `st_is_valid()` function. If you want a short description of the problems, you can add the argument `reason = TRUE`.
 
 ```{r}
-temp
-st_is_valid(temp)
-st_is_valid(temp, reason = TRUE)
+bug
+st_is_valid(bug)
+st_is_valid(bug, reason = TRUE)
 ```
 
-If there are only a few invalid features, we can correct them manually in QGIS. But sometimes this is not feasible and we need some automatic way of correcting. This is where the `st_make_valid()` function shines. Even though it's fully automatic, it will perform the appropriate changes 99% of the time.
+If there are only a few invalid features, we can correct them manually in QGIS. But sometimes this is not feasible and we need some automatic way of correcting. This is where the `st_make_valid()` function shines. Even though it's fully automatic, it will perform the appropriate changes 99% of the time. The function can use two different algorithms to correct geometries, you can choose which one will be used with the argument `geos_method`. The default algorithm ("valid_structure") is more recent and should produce better results in most cases. Try the older one ("valid_linework") if you're not happy with the results. Check the following webpage to see the differences between the two algorithms (it is written for PostGIS but `sf` uses the same geometry engine): <https://www.crunchydata.com/blog/waiting-for-postgis-3.2-st_makevalid>{target="_blank"}
 
 ```{r}
-temp_valid <- st_make_valid(temp)
-st_is_valid(temp_valid)
-temp_valid
-st_geometry_type(temp_valid)
-st_geometry_type(temp_valid, by_geometry = FALSE)
+bug_valid <- st_make_valid(bug)
+st_is_valid(bug_valid)
+bug_valid
+st_geometry_type(bug_valid)
+st_geometry_type(bug_valid, by_geometry = FALSE)
 ```
 
-When we look at the corrected data set, we see that the invalid polygon was converted to a multipolygon. We can also check it using the `st_geometry_type()` function. This is however a problem since we normally don't want a data set with mixed geometry types. When we use the `by_geometry = FALSE` argument, we see that `sf` is now using a generic GEOMETRY type for the data set. The solution would be to convert all the other polygons to multipolygons.
+When we look at the corrected data set, we see that the invalid polygon was converted to a multipolygon. We can also check it using the `st_geometry_type()` function. This is however a problem since we normally don't want a data set with mixed geometry types. When we use the `by_geometry = FALSE` argument, we see that `sf` is now using a generic GEOMETRY type for the data set. The solution would be to convert all the other polygons to multipolygons. To do that we need to understand type casting.
 
-### Vector type casting
+::: callout-important
+You've maybe heard of the buffer trick. It consists of computing a 0 meter buffer around each geometry to make them valid. This does work and make everything valid, but you may lose some parts of the geometries. For example, if you have a polygon with a self-intersection. The smaller part will not be retained.
+:::
 
-Changing the type of vector features is done with the `st_cast()` function. We can now solve our previous problem and convert everything to multipolygons (the existing multipolygon will be left untouched). Using the `st_as_text()` function we can see the WKT representation of the features geometry, and confirm that we're now using the same vector type for all features.
+### Vector type casting {#sec-typecasting}
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+bug <- st_read("data/geodata.gpkg", "wtf", quiet = TRUE)
+bug_valid <- st_make_valid(bug)
+```
+:::
+
+Changing the type of vector features is done with the `st_cast()` function. Using this function you can not only disaggregate geometries with MULTI\* types into several unique features (e.g., multipolygon to polygon) or extract simpler types (e.g., extract polygon borders or vertices), but also construct geometries using "simpler" geometry types (e.g., build a line from points).
+
+#### Polygons to Multipolygons
+
+We can now solve our previous problem and convert everything to multipolygons (the existing multipolygon will be left untouched). Using the `st_as_text()` function we can see the WKT representation of the features geometry, and confirm that we're now using the same vector type for all features. The `st_geometry_type()` function also tells us that the data set type is now multipolygon.
 
 ```{r}
-temp_multipoly <- st_cast(temp_valid, to = "MULTIPOLYGON")
-st_as_text(st_geometry(temp_valid))
-st_as_text(st_geometry(temp_multipoly))
-st_geometry_type(temp_multipoly, by_geometry = FALSE)
+bug_multipoly <- st_cast(bug_valid, to = "MULTIPOLYGON")
+st_as_text(st_geometry(bug_valid))
+st_as_text(st_geometry(bug_multipoly))
+st_geometry_type(bug_multipoly, by_geometry = FALSE)
 ```
 
-We can go a bit further and convert our multipolygons to other types... Note: for some reasons, it is not possible to convert a multipolygon directly to a line. You'll need to convert it to a multiline object first.
+If you want to be absolutely sure that you have only one feature type in your data set, you can combine the `unique()` function with the `st_geometry_type()` function.
 
 ```{r}
-temp_poly <- st_cast(temp_multipoly, to = "POLYGON")
-temp_multiline <- st_cast(temp_multipoly, to = "MULTILINESTRING")
-temp_line <- st_cast(temp_multiline, to = "LINESTRING")
-temp_multipts <- st_cast(temp_multipoly, to = "MULTIPOINT")
-temp_pts <- st_cast(temp_multipoly, to = "POINT")
-
-temp_poly
-temp_multiline
-temp_line
-temp_multipts
-temp_pts
-
-par(mfrow=c(2, 3))
-plot(st_geometry(temp_multipoly), col = 1:nrow(temp_multipoly))
-plot(st_geometry(temp_poly), col = 1:nrow(temp_poly))
-plot(st_geometry(temp_multiline), col = 1:nrow(temp_multiline))
-plot(st_geometry(temp_line), col = 1:nrow(temp_line))
-plot(st_geometry(temp_multipts), col = 1:nrow(temp_multipts), pch = 16)
-plot(st_geometry(temp_pts), col = 1:nrow(temp_pts), pch = 16)
+unique(st_geometry_type(bug_valid))
+unique(st_geometry_type(bug_multipoly))
 ```
 
-It is of course not possible to convert points to polygons, but if you have a line or multiline geometry forming a closed ring, we can easily convert it to a polygon.
+#### Polygons to other types
+
+We can go a bit further and convert our multipolygons to other types. Converting polygons to lines will extract the rings, and converting to points will extract the vertices (similarly, casting a linestring to points will extract its vertices). Note: for some reasons, it is not possible to convert a multipolygon directly to a linestring. You'll need to convert it to a multilinestring object first.
 
 ```{r}
-sempach_multiline <- st_cast(muni[which(muni$name == "Sempach"),], to = "MULTILINESTRING")
-plot(st_geometry(sempach_multiline), col = "navy")
+bug_poly <- st_cast(bug_multipoly, to = "POLYGON")
+bug_multiline <- st_cast(bug_multipoly, to = "MULTILINESTRING")
+bug_line <- st_cast(bug_multiline, to = "LINESTRING")
+bug_multipts <- st_cast(bug_multipoly, to = "MULTIPOINT")
+bug_pts <- st_cast(bug_multipoly, to = "POINT")
+
+bug_poly
+bug_multiline
+bug_line
+bug_multipts
+bug_pts
+```
+
+In the following figure, each feature has a unique color. It is thus easy to visualize the difference between the MULTI\* types and the other ones.
+
+```{r}
+par(mfrow = c(2, 3))
+plot(st_geometry(bug_multipoly), col = rainbow(nrow(bug_multipoly)), main = "Multipolygons")
+plot(st_geometry(bug_multiline), col = rainbow(nrow(bug_multiline)), main = "Multilines")
+plot(st_geometry(bug_multipts), col = rainbow(nrow(bug_multipts)), pch = 16, main = "Multipoints")
+plot(st_geometry(bug_poly), col = rainbow(nrow(bug_poly)), main = "Polygons")
+plot(st_geometry(bug_line), col = rainbow(nrow(bug_line)), main = "Lines")
+plot(st_geometry(bug_pts), col = rainbow(nrow(bug_pts)), pch = 16, main = "Points")
+```
+
+#### Points to lines
+
+It is of course not possible to convert points directly to polygons, but if you have an `sf` object with points in the right order, you can easily build a linestring. As an example, let's extract the first 10 vertices of the Sempach multipolygon. Once you have an `sf` object with ordered points, you need to group them into a single multipoints geometry using the `st_combine()` function, and then call the `st_cast()` function on this new object.
+
+```{r}
+#| warning: false
+sempach_pts <- st_cast(muni[muni$name == "Sempach",], to = "POINT")[1:10,]
+sempach_multipts <- st_combine(sempach_pts)
+sempach_line <- st_cast(sempach_multipts, "LINESTRING")
+par(mfrow = c(1, 2))
+plot(st_geometry(sempach_pts), pch = 16, main = "Points")
+text(sempach_pts, 1:nrow(sempach_pts), pos = 4, cex = 0.8)
+plot(sempach_line, lwd = 2, col = "navy", main = "Linestring")
+```
+
+#### Lines to polygons
+
+If you have a linestring or multilinestring geometry forming a closed ring, you can easily convert it to a polygon. As an example, let's use the outer ring of the Sempach multipolygon.
+
+```{r}
+sempach_multiline <- st_cast(muni[muni$name == "Sempach",], to = "MULTILINESTRING")
 sempach_poly <- st_cast(sempach_multiline, to = "POLYGON")
-plot(st_geometry(sempach_poly), col = "navy")
+par(mfrow = c(1, 2))
+plot(st_geometry(sempach_multiline), col = "navy", main = "Multilinestring")
+plot(st_geometry(sempach_poly), col = "navy", main = "Polygon")
 ```
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
-
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 Create a new object containing only the polygon for Sursee, check its validity and compute its perimeter using the `st_length()` function, compare with the result of the `st_perimeter()` function.
 
 ```{r}
 #| eval: false
 #| code-fold: true
-sursee_poly <- muni[which(muni$name == "Sursee"),]
+sursee_poly <- muni[muni$name == "Sursee",]
 sursee_multiline <- st_cast(sursee_poly, to = "MULTILINESTRING")
 st_length(sursee_multiline)
 st_perimeter(sursee_poly)
@@ -673,22 +851,34 @@ st_perimeter(sursee_poly)
 
 ### Spatial predicates
 
-Topology describes the spatial relationships between vector objects. Two features can for example intersect, or one feature can contain another. The existence of such relationships between features is tested by functions called spatial (binary) predicates. Many are available in the `sf` package, use `?geos_binary_pred` if you want to see the full list.
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+streets <- st_read("data/geodata.gpkg", "streets", quiet = TRUE)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+```
+:::
+
+Topology describes the spatial relationships between vector objects. For example, two features can intersect, or one feature can contain another one. The existence of such relationships between features is tested by functions called spatial (binary) predicates. Many are available in the `sf` package, use `?geos_binary_pred` if you want to see the full list.
 
 ::: callout-important
 When using spatial predicates you must be sure that both objects use the same CRS.
 :::
 
-We can for example easily test which bird sightings are in Sempach.
+We can for example easily test whether bird sightings are located in Sempach, or somewhere else.
 
 ```{r}
-sempach <- muni[muni$name=="Sempach",]
+sempach <- muni[muni$name == "Sempach",]
 obs_in_sempach <- st_intersects(obs, sempach)
 obs_in_sempach
 summary(lengths(obs_in_sempach) > 0)
 ```
 
-The output is stored in an memory efficient sparse matrix format which not easily readable by humans. We can use the `sparse = FALSE` argument to get a non-sparse matrix and perform standard operations (e.g. computing the number of sightings in Sempach).
+The output is stored in an memory efficient sparse matrix format which is not always easily readable by humans. We can use the `sparse = FALSE` argument to get a non-sparse matrix and perform standard operations (e.g. computing the number of sightings in Sempach).
 
 ```{r}
 obs_in_sempach <- st_intersects(obs, sempach, sparse = FALSE)
@@ -696,7 +886,7 @@ tail(obs_in_sempach)
 sum(obs_in_sempach)
 ```
 
-Using another predicate (`st_disjoint`), we can get a list of all sightings that are in other municipalities.
+Using another predicate (`st_disjoint`), we can get a list of all sightings that are in other municipalities. Of course, this computation is superfluous in this case since the output of the `st_disjoint()` function is the complement of the set provided by the `st_intersects()` function.
 
 ```{r}
 obs_not_in_sempach <- st_disjoint(obs, sempach, sparse = FALSE)
@@ -710,7 +900,7 @@ soi <- st_as_sfc("POINT(2657271 1219754)", crs = "EPSG:2056")
 st_is_within_distance(soi, obs, dist = 1000)
 ```
 
-Things can get a bit more complex when the two elements used inside the predicate contain multiple feature. In this example we test for intersections between two municipalities and all the highway segments stored in the streets data set.
+Things get a bit more complex when the two elements used inside the predicate contain multiple features. In this example we test for intersections between two municipalities and all the highway segments stored in the streets data set.
 
 ```{r}
 muni_extract <- muni[6:7,]
@@ -718,11 +908,24 @@ highways <- streets[streets$type == 2,]
 st_intersects(muni_extract, highways)
 ```
 
-Don't hesitate to try other predicate (e.g. `st_within()`, `st_contains()`). The difference between some of them is sometimes quite subtle. If you need even more flexibility you should use the `st_relate()` function. This flexibility comes with a price, `st_relate()` is much slower since it doesn't use spatial indices. If you want an in-depth explanation of all the possibilities, you should check the following website: <https://en.wikipedia.org/wiki/DE-9IM>.
+Don't hesitate to try other predicates (e.g. `st_within()`, `st_contains()`). The difference between some of them is sometimes quite subtle (e.g., the influence of the feature border). If you need even more flexibility you should use the `st_relate()` function. This flexibility comes with a price, though. The `st_relate()` function is much slower since it doesn't use spatial indices. If you want an in-depth explanation of all the possibilities, you should check the following website: <https://en.wikipedia.org/wiki/DE-9IM>{target="_blank"}.
 
 ### Spatial subsetting
 
-Now that we know how to test different topological properties, we can use them to subset data spatially. The `sf` package allows doing that using the usual `[]` notation. This is how we create a new `sf` object containing only the sightings in Sempach. The st_intersects predicate is used by default if you don't specify anything.
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+sempach <- muni[muni$name == "Sempach",]
+soi <- st_as_sfc("POINT(2657271 1219754)", crs = "EPSG:2056")
+```
+:::
+
+Now that we know how to test different topological properties, we can use them to subset data spatially. The `sf` package allows doing that using the usual `[]` notation. The `st_intersects` predicate is used by default if you don't specify anything. This is how we create a new `sf` object containing only the sightings in Sempach.
 
 ```{r}
 obs_in_sempach <- obs[sempach,]
@@ -732,9 +935,7 @@ obs_in_sempach <- obs[sempach, , op = st_intersects]
 
 The empty argument can be used to specify the desired attribute columns.
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
-
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 Within a 2 km radius around Swiss Ornithological Institute, how many bird sightings are in Neuenkirch? Try to make a map of the municipalities with the filtered sightings.
 
 ```{r}
@@ -751,17 +952,31 @@ plot(st_geometry(obs_filtered), add = TRUE)
 
 ### Spatial joins
 
-We've already seen how to join a spatial object to another table using attributes. Now we'll do something similar but instead of using attributes, we'll perform the join between to spatial objects based on their topological relationships. As a first example we will join the bird sightings data set with the municipalities data set. As output we will get the bird sightings with additional attributes corresponding to their respective municipality. We'll do this using the `st_join()` function.
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+```
+:::
+
+We've already seen how to join a spatial object to another table using attributes. Now we'll do something similar but instead of using attributes, we'll perform a join between spatial objects based on their topological relationships. As a first example we will join the bird sightings data set with the municipalities data set. As output we will get the bird sightings with additional attributes corresponding to their respective municipality. We'll do this using the `st_join()` function.
 
 ```{r}
 obs_muni <- st_join(obs, muni, join = st_intersects)
 obs_muni
+```
+
+In this example both data sets have an attributed called "name". When we join them together, R is automatically renaming these columns to "name.x" and "name.y". The "x" and "y" corresponds to the order of the data sets when calling the `st_join()` function. We can now easily compute the number of sightings per municipality.
+
+```{r}
 table(obs_muni$name.y)
 ```
 
-In this example both data sets have an attributed called "name". When we join them together, R is automatically renaming these columns to "name.x" and "name.y". The "x" and "y" corresponds to the order of the data sets when calling the `st_join()` function.
-
-Let's try another spatial join, this time we will join the sightings with a landcover data set, which is an extract of the swissTLM3D data set provided by Swisstopo. The goal of the analysis it to add a new attribute to the bird sightings data set corresponding to the landcover value.
+Let's try another spatial join, this time we will join the sightings with a landcover data set, which is an extract of the [swissTLM3D](https://www.swisstopo.admin.ch/en/landscape-model-swisstlm3d){target="_blank"} data set provided by Swisstopo. The goal of the analysis it to add a new attribute to the bird sightings data set corresponding to the landcover value.
 
 ```{r}
 landcover <- st_read("data/geodata.gpkg", "landcover", quiet = TRUE)
@@ -778,9 +993,7 @@ obs_landcover_inner
 table(obs_landcover_inner$type, useNA = "always")
 ```
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
-
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 Have a look at the number of features (rows) of the original `obs` data set and compare it with the number of features of the `obs_landcover` data set. Why are they different?
 
 ```{r}
@@ -793,10 +1006,14 @@ nrow(obs_landcover)
 # This means some sightings will be duplicated. We call this kind of joins "one-to-many".
 # You can find these duplicated sightings by looking at the row names with the rownames() function, or by
 # adding an unique ID to all the sightings before the spatial join and then looking for duplicated IDs.
+
+dupl <- grep(".", rownames(obs_landcover), fixed = TRUE)
+dupl <- sort(c(dupl, dupl - 1))
+obs_landcover[dupl,]
 ```
 :::
 
-Since the landcover data is not a complete coverage of our study area, which leads to NA values in our joined data set, we can maybe try to get more complete results by using another spatial predicate. The `st_nearest_feature` predicate will join the sightings to the nearest landcover polygon. Polygons containing points will be considered to be the closest ones. I honestly don't know what is happening when a point is within two overlapping polygons.
+Since the landcover data is not a complete coverage of our study area, which leads to NA values in our joined data set, we can maybe try to get more complete results by using another spatial predicate. The `st_nearest_feature` predicate will join the sightings to the nearest landcover polygon. Polygons containing points will be considered to be the closest ones. I honestly don't know what is happening when a point is within overlapping polygons. My first thoughts were that it would take the attributes from the highest or lowest polygon in the stack of overlapping polygons, but there's no clear pattern.
 
 ```{r}
 obs_landcover2 <- st_join(obs, landcover, join = st_nearest_feature)
@@ -807,6 +1024,20 @@ table(obs_landcover2$type, useNA = "always")
 In this example we joined a point data set to a polygon data set and this is the most common application for a spatial join. However we're not restricted to these combinations, we can join all the vector types (e.g. polygons with polygons). If you're joining polygons to polygons, `st_join()` is also able to perform joins based on the maximum area overlay (it joins with the polygon having the largest overlap). To do this, you need to add the `largest = TRUE` argument.
 
 ### Distance operations
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(tmap)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+soi <- st_as_sfc("POINT(2657271 1219754)", crs = "EPSG:2056")
+data(World)
+```
+:::
 
 Calculating distances between `sf` objects is done with the `st_distance()` function.
 
@@ -820,7 +1051,9 @@ Once again, we see that `sf` is using units. We also note that the results are s
 st_distance(obs[1:5,], muni[1:3,])
 ```
 
-We will now make a short excursion in the world of geographic CRS with a quick example showing what `sf` is doing when we don't use standard Euclidean geometry. We will compute the distance between the centroids of Switzerland and Australia. By default `sf` is using the `s2` library to perform its computation on a spheroid when we use a geographic CRS. However for distances, it is possible to obtain a better approximation by using an ellipsoid. To do this, we need to tell `sf` not to use `s2` and the `st_distance()` will use a more precise algorithm. We can of course compare the two estimates.
+The distances are measured between the points and the nearest edge of the polygons if they are located outside the polygons. The distance will be 0 if they are within the polygon.
+
+We will now make a short excursion in the world of geographic CRS with a quick example showing what `sf` is doing when we don't use standard Euclidean geometry. We will compute the distance between the centroids of Switzerland and Australia. By default `sf` is using the `s2` library to perform its computations on a spheroid when we use a geographic CRS. However for distances, it is possible to obtain better approximations by using an ellipsoid. To do this, we need to tell `sf` to avoid using `s2` with the function `sf_use_s2(FALSE)`. The `st_distance()` will thus be forced to use a more precise algorithm (by automatically using a similar function from the `lwgeom` package). We can of course compare the two estimates.
 
 ```{r}
 world_centroids <- st_centroid(World)
@@ -831,56 +1064,61 @@ sf_use_s2(FALSE)
 (d1 <- st_distance(pt1, pt2))
 sf_use_s2(TRUE)
 (d2 <- st_distance(pt1, pt2))
-d2 - d1
+abs(d2 - d1)
 ```
+
+The distance we're measuring is shown on the following map. Since the earth is not flat, the shortest distance between two points is not a straight line. These shortest distance lines are called great circles.
 
 ```{r}
-#| echo: false
+gcLine <- st_cast(st_combine(rbind(pt1, pt2)), "LINESTRING")
+gcLine <- st_segmentize(gcLine, 1000)
 
-library(sp)
-library(geosphere)
-library(lwgeom)
-tmp1 <- as(pt1, "Spatial")
-tmp2 <- as(pt2, "Spatial")
-gcLine <- greatCircle(tmp1, tmp2, sp = TRUE)
-gcLine <- st_as_sf(gcLine)
-
-world_proj <- st_transform(World, "ESRI:54030")
-pt1_proj <- st_transform(pt1, "ESRI:54030")
-pt2_proj <- st_transform(pt2, "ESRI:54030")
-gcLine_proj <- st_transform(gcLine, "ESRI:54030")
-
-pt3 <- st_snap(pt1_proj, gcLine_proj, 10000)
-pt4 <- st_snap(pt2_proj, gcLine_proj, 100000)
-part <- st_collection_extract(st_split(gcLine_proj$geometry, pt3$geometry), "LINESTRING")[2]
-part <- st_collection_extract(st_split(part, pt4$geometry), "LINESTRING")[1]
-
-extent <- world_proj[which(world_proj$name == "Iceland" | world_proj$name == "Norway" | world_proj$name == "Australia"),]
-plot(st_geometry(world_proj), extent = extent, col = "grey90")
-plot(part, add = TRUE, lwd = 2, col = "red")
-plot(st_geometry(pt1_proj), add = TRUE, pch = 16, col = "red")
-plot(st_geometry(pt2_proj), add = TRUE, pch = 16, col = "red")
-
-rm(tmp1, tmp2, gcLine, world_proj, pt1_proj, pt2_proj, gcLine_proj, pt3, pt4, part, extent)
+extent <- World[World$name == "Iceland" | World$name == "Norway" | World$name == "Australia",]
+plot(st_geometry(World), extent = extent, col = "grey90")
+plot(gcLine, add = TRUE, lwd = 2, col = "red")
+plot(st_geometry(pt1), add = TRUE, pch = 16, col = "red")
+plot(st_geometry(pt2), add = TRUE, pch = 16, col = "red")
 ```
+
+:::callout-note
+All the `sf` objects plotted on this map have the same geographic CRS but a map is a plane... To plot this kind of data, `sf` thus needs to perform some projection. Almost all GIS software (including `sf`) use a simple projection called plate carrée which maps *x* to be the value of the longitude and *y* to be the value of the latitude. This is not a good projection if you want to publish a world map. The distortions can get quite large (e.g., Switzerland will be too elongated). We will see better alternatives later in this tutorial.
+:::
+
+::: callout-important
+We've already seen examples where turning `s2` off will provide more precise results when using a geographic CRS. But keep in mind that computing areas, lengths or distances are probably the only valid cases where turning `s2` off is a good idea. For all other computations based on geographic CRSs you should NOT deactivate `s2`, otherwise you'll get results that will most probably be wrong.
+:::
 
 ### Buffers
 
-Buffering objects is one of the most common operations in GIS. A buffer is a polygon showing the area within a given distance of a spatial object. You can buffer all the existing vector types with the `st_buffer()` function.
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+```
+:::
+
+Buffering objects is one of the most common operations in GIS. A buffer is a polygon showing the area within a given distance of a spatial object. You can buffer all the existing vector types with the `st_buffer()` function. For the distance, you can either specify a numeric value, or an object of class `units`. If you use a numeric value, the unit will the one of the used CRS (i.e., meters for the Swiss CRS we're using). You can also specify a vector of distances (one distance for each feature).
 
 ```{r}
 obs_buff <- st_buffer(obs[c(1, 2, 5),], dist = 80)
-plot(st_geometry(obs_buff), col = 2:4)
+obs_buff_var <- st_buffer(obs[c(1, 2, 5),], dist = c(60, 80, 100))
+par(mfrow = c(1, 2))
+plot(st_geometry(obs_buff), col = 2:4, main = "Fixed width")
+plot(st_geometry(obs_buff_var), col = 2:4, main = "Variable width")
 ```
 
-In the GIS world curves are often approximated using small segments, even though curves exists in the Simple Feature standard (but they're often poorly implemented in GIS software). The number of segments used to create the buffers is controlled by the argument `nQuadSegs` (= number of segments per quadrant). You can change this value to create buffers with octagonal shapes. You can also increase the default value if you need better precision (especially useful for very large buffers).
+In the GIS world curves are often approximated using small segments, even though curves exists in the Simple Feature standard (but they're often poorly implemented in GIS software). The number of segments used to create the buffers is controlled by the argument `nQuadSegs` (= number of segments per quadrant). You can change this value to create buffers with octagonal shapes. You can also increase the default value if you need better precision.
 
 ```{r}
 obs_buff_oct <- st_buffer(obs[c(1, 2, 5),], dist = 80, nQuadSegs = 2)
 plot(st_geometry(obs_buff_oct), col = 2:4)
 ```
 
-Each feature will get its own buffer, which means that, if they're close enough and/or the distance is large enough, the buffers will overlap but they're still separate features. It is possible to merge overlapping buffers using the `st_union()` function. The function will produce a single multipolygon, that's why we need transform the output into a polygon to recover the non-overlapping buffers as separate features. Note that you will use the attributes of the buffers with this operation. If you need to recover some of them, you can use a spatial join.
+Each feature will get its own buffer, which means that, if they're close enough and/or the distance is large enough, the buffers will overlap but they're still separate features. It is possible to merge overlapping buffers using the `st_union()` function. The function will produce a single multipolygon, that's why we need to transform the output into a polygon to recover the non-overlapping buffers as separate features. Note that you will lose the attributes of the original features with this operation. If you need to recover some of them, you can use a spatial join (but be careful: what do you really want for the merged buffers?).
 
 ```{r}
 obs_buff_merged <- st_union(obs_buff)
@@ -888,7 +1126,29 @@ obs_buff_merged <- st_cast(obs_buff_merged, "POLYGON")
 plot(obs_buff_merged, col = 2:3)
 ```
 
+When using polygons, you can also specify negative distances.
+
+```{r}
+muni_buff <- st_buffer(muni, dist = -500)
+plot(st_geometry(muni))
+plot(st_geometry(muni_buff), col = "navy", add = TRUE)
+```
+
+::: callout-important
+If you use a geographic CRS and `sf_use_s2()` is `TRUE`, a numeric value for the distance will be taken as a distance in meters. If `sf_use_s2()` is `FALSE`, the unit will be degrees and the output probably won't make any sense.
+:::
+
 ### Affine transformations
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+sempach <- muni[muni$name == "Sempach",]
+```
+:::
 
 `sf` provide methods to transform `sfc` and `sfg` objects, this is however not possible with `sf` objects (but have a look at the trick at the end of this section). Shifting a geometry is the easiest operation. The next example will shift the borders of Sempach, 500 meters to the north and 200 meters to the east. The shift is always done using the unit defined in the CRS used by the spatial object.
 
@@ -897,7 +1157,15 @@ sempach_sfc <- st_geometry(sempach)
 sempach_sfc_shift <- sempach_sfc + c(500, 200)
 ```
 
-We can also scale the geometries, but we need a reference point (such as the centroid) for each feature. Once we have these reference points, we can center them by shifting the geometries, apply the scaling, and shift them back to their original locations.
+:::callout-important
+The output of an affine transformation will unfortunately lose its CRS information (it will be NA). This is a problem, especially if you plan to do further analyses or make maps with the transformed data. You can use the `st_crs()` function to reassign it based on the original data.
+
+```{r}
+st_crs(sempach_sfc_shift) <- st_crs(sempach_sfc)
+```
+:::
+
+We can also scale the geometries, but we need a reference point (such as the centroid) for each feature. Once we have these reference points, we can center the geometries by shifting them, apply the scaling, and shift them back to their original locations.
 
 ```{r}
 muni_sfc <- st_geometry(muni)
@@ -908,16 +1176,16 @@ plot(muni_sfc, col = "grey90")
 plot(muni_sfc_scale, col = "navy", add = TRUE)
 ```
 
-Rotation is the last common affine transformation. We also need to define a reference point for each feature and perform the same shifting operations. However, instead of multiplying with a scalar we now use a rotation matrix. Remember that a 2D vector (i.e. coordinates) will be rotated by an angle $\theta$ when we multiply it with the following matrix:
+Rotation is another common affine transformation. We also need to define a reference point for each feature and perform the same shifting operations. However, instead of multiplying with a scalar we now use a rotation matrix. Remember that a 2D vector (i.e. coordinates) will be rotated by an angle $\theta$ when we multiply it with the following matrix:
 
 $$R=
 \begin{pmatrix}
 \cos(\theta) & -\sin(\theta)\\
 \sin(\theta) & \cos(\theta)
 \end{pmatrix}
-$$
+ $$
 
-We can of course combine scaling and rotation...
+We can of course combine different transformations, such as scaling and rotation...
 
 ```{r}
 rotation <- function(theta){
@@ -940,15 +1208,34 @@ Once all the transformations are performed, we can use the `st_set_geometry()` f
 
 ```{r}
 muni2 <- st_set_geometry(muni, muni_sfc_scale_rotate)
+st_crs(muni2) <- st_crs(muni)
 ```
 
-### Combining geometries
+### Combine geometries
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+sempach <- muni[muni$name == "Sempach",]
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+```
+:::
 
 Combining geometries from two different data sets is one of the most common analysis performed in a GIS. The four main operations are the following ones: union, intersection, difference and symmetric difference. The following figure shows a graphical overview of these operations with the function names (source: Lovelace *et al.*, 2019):
 
 ![](figures/venn-clip-1.png)
 
-As we've seen earlier, the `st_union()` function can also be used with a single data set to merge geometries.
+:::callout-important
+When you combine geometries from different data sets, you need to be sure that they all have the same CRS.
+:::
+
+#### Merge geometries
+
+As we've seen earlier, we can use the `st_union()` function with a single data set to merge its geometries. All polygons with common borders will be merged together. If you have line geometries, the function will merge all the lines that are touching or intersecting.
 
 ```{r}
 muni_merged <- st_union(muni)
@@ -956,14 +1243,26 @@ muni_merged
 plot(muni_merged, col = "navy")
 ```
 
-But it can also be used to merge geometries between two `sf` objects having the same vector type.
+If you use the `st_union()` function on a polygon data set where some geometries don't have common borders, you'll get a single multipolygon geometry as output. You can easily disaggregate the parts using the `st_cast()` function. This operation is sometimes called "exploding" a multipart geometry.
+
+```{r}
+muni_merged <- st_union(muni[c(1, 2, 6, 7),])
+muni_merged
+muni_merged_exploded <- st_cast(muni_merged, "POLYGON")
+muni_merged_exploded
+plot(muni_merged_exploded, col = 2:3)
+```
+
+The `st_union()` function can also be used to merge geometries between two `sf` objects having the same vector type.
 
 ```{r}
 temp_poly <- st_geometry(st_buffer(obs[1,], 2000))
 plot(st_union(temp_poly, sempach))
 ```
 
-As as another example, let's calculate the intersection between our new polygon and the municipality of Sempach.
+#### Intersect geometries
+
+Computing the intersection of geometries is another common GIS operation. For example, let's calculate the intersection between the new polygon we've just created and the municipality of Sempach.
 
 ```{r}
 muni_inter <- st_intersection(sempach, temp_poly)
@@ -996,9 +1295,7 @@ Ideally we would use geometry collections directly in our analyses but you'll qu
 st_collection_extract(inter, "POLYGON")
 ```
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
-
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 Create a line object that is intersecting the streets data set. Compute the intersection using the `st_intersection()` function.
 
 ```{r}
@@ -1016,7 +1313,7 @@ plot(temp_inter[4], col = "blue", add = TRUE)
 
 ### Aggregate by attributes
 
-Aggregation can be based purely on the attributes, treating the `sf` object as a dataframe using the standard `aggregate()` function. However, the `sf` package also extends the `aggregate()` function if you use an `sf` object as the first argument. Note that the nice formula notation is not possible in this case.
+Aggregation can be based purely on the attributes, treating the `sf` object as a data frame using the standard `aggregate()` function. However, the `sf` package also extends the `aggregate()` function if you use an `sf` object as the first argument. Note that the nice formula notation is not possible in this case.
 
 ```{r}
 aggregate(pop_est ~ continent, FUN = sum, data = World, na.rm = TRUE)
@@ -1407,9 +1704,7 @@ names(landcover_layers) <- c("settlements", "agriculture", "forest", "unproducti
 plot(landcover_layers)
 ```
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
-
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 Extract the `forest` raster and aggregate it to get a resolution of 1000 meters. Each pixel should contain the ratio of forest (0 = no forest, 1 = 100% forest) within the 1km area.
 
 ```{r}
@@ -1457,7 +1752,7 @@ vals_avg <- extract(elev, vect(obs_buff), fun = mean)
 
 The `extract()` function is really powerful (and fast) and has a lot of additional possibilities. Don't hesitate to have a look at its help file.
 
-### Combining rasters
+### Combine rasters
 
 We've already seen that you can combine different rasters in a multiband data raster, if they're properly aligned and have the same extent.
 
@@ -1568,9 +1863,7 @@ northness <- cos(aspect_rad)
 plot(c(eastness, northness))
 ```
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
-
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 Use the slope raster to mask all the flat areas of the `eastness` raster. Use a value of 0 for these areas.
 
 ```{r}
@@ -1589,9 +1882,7 @@ dist_from_obs <- distance(elev, vect(obs))
 plot(dist_from_obs)
 ```
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
-
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 What is the largest distance from a bird sighting within the municipality of Sempach?
 
 ```{r}
@@ -1659,9 +1950,7 @@ plot(st_union(muni), col = NA, border = "grey50", lwd = 2, add = TRUE)
 plot(obs["name"], pch = 16, cex = 2, add = TRUE)
 ```
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
-
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 Try a few options, try to change some colors, add some of the streets.
 :::
 
@@ -1675,9 +1964,7 @@ plot(cantons["popsize"], nbreaks = 15)
 plot(cantons["popsize"], breaks = "quantile")
 ```
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
-
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 Compute the population density and plot the corresponding choropleth map. Find better values for the breaks and change the colors used.
 
 ```{r}
@@ -1690,7 +1977,7 @@ plot(cantons["popdensity"], breaks = "jenks", nbreaks = 10, pal = hcl.colors(10)
 ```
 :::
 
-If you need good colors for your maps, you should use the `RColorBrewer` and `viridis` packages. These were designed by color specialists and are highly recommended. For `RColorBrewer` you can visualize the existing color palettes on the following website: <https://colorbrewer2.org>.
+If you need good colors for your maps, you should use the `RColorBrewer` and `viridis` packages. These were designed by color specialists and are highly recommended. For `RColorBrewer` you can visualize the existing color palettes on the following website: <https://colorbrewer2.org>{target="_blank"}.
 
 Plotting raster data is very similar
 
@@ -1845,9 +2132,7 @@ The next example is not a choropleth map, but it shows you another way to plot a
 tm_shape(muni) + tm_borders() + tm_bubbles("popsize", scale = 2)
 ```
 
-::: {.callout-note icon="false"}
-## Exercise (5 minutes)
-
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 Try to make a choropleth map of population size combined with `tm_bubbles`. What is happening with the legend? Try to give a different title to both legends.
 
 ```{r}
@@ -2026,15 +2311,18 @@ Here's a non-exhaustive list of packages you can use to download GIS data.
 | elevatr | Import digital elevation models |
 | giscoR | Tools to download data from the GISCO (Geographic Information System of the Commission) Eurostat database |
 | MODIStsp | Download MODIS satellite data |
-| swissgd | Download data from the Swiss geodata infrastructure (https://github.com/zumbov2/swissgd) |
+| swissgd | Download data from the Swiss geodata infrastructure <https://github.com/zumbov2/swissgd>{target="_blank"} |
 
 ## More help
 
-If you need more help, documentation, code examples, you should have a look at the `sf` vignettes and the `terra` documentation (<https://rspatial.org>).
+If you need more help, documentation, code examples, you should have a look at the `sf` vignettes and the `terra` documentation (<https://rspatial.org>{target="_blank"}).
 
-The book "Geocomputation with R" is absolutely amazing and available for free (legally) on the web: <https://r.geocompx.org>. If you really like `tmap`, you should also check the `tmap` book that is also available for free on the web (but is not yet finished): <https://r-tmap.github.io/tmap-book>. If you don't really like `tmap` you can also have a look at the `mapsf` package.
+The book "Geocomputation with R" is absolutely amazing and available for free (legally) on the web: <https://r.geocompx.org>{target="_blank"}. If you really like `tmap`, you should also check the `tmap` book that is also available for free on the web (but is not yet finished): <https://r-tmap.github.io/tmap-book>{target="_blank"}. If you don't really like `tmap` you can also have a look at the `mapsf` package.
 
 ## References
+
+::: {#refs}
+:::
 
 Appelhans T., Detsch F., Reudenbach C., Woellauer S. (2022). mapview: Interactive Viewing of Spatial Data in R. R package version 2.11.0
 
