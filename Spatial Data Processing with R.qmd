@@ -48,13 +48,15 @@ Sys.setenv(PROJ_LIB = "")
 
 ## Preface
 
-The first version of this tutorial was created for a course given at the [Swiss Ornithological Institute](https://www.vogelwarte.ch/en){target="_blank"} in 2023. Researchers and students in ecology were the original audience but the whole material can be used by anybody who wants to learn more about how to perform GIS analyses and design maps with the R statistical programming language. 
+The first version of this tutorial was created for a course given at the [Swiss Ornithological Institute](https://www.vogelwarte.ch/en){target="_blank"} in 2023. Researchers and students in ecology were the original audience but the whole material can be used by anybody who wants to learn more about how to perform GIS analyses and design maps with the R statistical programming language. The tutorial was heavily updated in 2025.
 
 My goal was to combine a very general and basic introduction to GIS with some sort of cookbook showing how to perform common GIS analyses and create maps with R. The introductory sections should provide enough information for readers with no or little GIS experience in order to understand the rest of the material. You're welcome to skip them, especially if you understand GIS data models and how GIS data is stored in R.
 
 The cookbook part of the tutorial is a collection of analyses and mapping techniques that I regularly use in my job. Most of them are standard GIS procedures, but you'll also find more advanced topics. There are two ways to run the code snippets in this tutorial. You can either run everything, starting with the first section and continuing with the others. Or, if you prefer the cookbook approach, I also included a collapsible code snippet at the start of each section that will allow you to get all the required data and load packages for this section only.
 
-None of this content could have been written without the incredible work done by the R-spatial community. I'd especially like to thank all the software developers who created and are maintaining the R software, the R packages and the open-source libraries used in these packages!
+You will notice that the amount of content (examples, explanations, exercises, etc.) can be variable depending on the section. I'm sorry for this, this is purely due to a lack of time on my side... I promise to do my best to add more content soon (hopefully).
+
+None of this could have been written without the incredible work done by the R-spatial community. I'd especially like to thank all the software developers who created and are maintaining the R software, the R packages and the open-source libraries used in these packages!
 
 ## Introduction
 
@@ -293,6 +295,17 @@ Since everything is stored as lists, it is again easy to access individual eleme
 # Extract the 3rd geometry
 pts_sf$geometry[[3]]
 ```
+
+There's some sort of tradition to call geometry columns *geom* or *geometry*, but you're entirely free to chose another name. However, you need to be a bit careful since the `sf` package must always know the correct name. For example, using the standard `names()` function will not work for geometry columns since `sf` won't be informed of the change. To modify the name of the geometry column, always use the `st_geometry()` function.
+
+```{r}
+#| error: true
+names(pts_sf)[3] <- "my_beautiful_points"
+pts_sf
+st_geometry(pts_sf) <- "my_beautiful_points"
+pts_sf
+```
+
 
 ::: callout-tip
 You can also create `sf` objects directly from a data frame containing a column of type `sfc` using the `st_as_sf()` function.
@@ -1126,12 +1139,64 @@ obs_buff_merged <- st_cast(obs_buff_merged, "POLYGON")
 plot(obs_buff_merged, col = 2:3)
 ```
 
-When using polygons, you can also specify negative distances.
+When using polygons, we can also specify negative distances to create "inside" buffers.
 
 ```{r}
 muni_buff <- st_buffer(muni, dist = -500)
 plot(st_geometry(muni))
 plot(st_geometry(muni_buff), col = "navy", add = TRUE)
+```
+
+When buffering lines or polygons, we have three different options to control what will happen at corners: `ROUND`, `BEVEL` and `MITRE`. The default is to use rounded corners but we can easily change that with the `joinStyle` argument. When using the MITRE style, we can control the maximum distance from the original geometry with the `mitreLimit` argument. This is expressed as a ratio of the buffer distance and the default value is 1 (e.g., a value of 2 means that we allow distances up to twice the chosen buffer distance for corners).
+
+```{r}
+pol <- st_as_sfc("POLYGON((2656000 1221000, 2657000 1221000, 2657000 1220000, 2658000 1220000, 2658000 1219000, 2656000 1219000, 2656000 1221000))", crs = "EPSG:2056")
+
+pol_buff1 <- st_buffer(pol, 400, joinStyle = "ROUND")
+pol_buff2 <- st_buffer(pol, 400, joinStyle = "BEVEL")
+pol_buff3 <- st_buffer(pol, 400, joinStyle = "MITRE")
+pol_buff4 <- st_buffer(pol, 400, joinStyle = "MITRE", mitreLimit = 2)
+
+par(mfrow = c(2, 2))
+plot(pol_buff1, main = "joinStyle = ROUND")
+plot(pol, col = "navy", add = TRUE)
+plot(pol_buff2, main = "joinStyle = BEVEL")
+plot(pol, col = "navy", add = TRUE)
+plot(pol_buff3, main = "joinStyle = MITRE (limit=1)")
+plot(pol, col = "navy", add = TRUE)
+plot(pol_buff4, main = "joinStyle = MITRE (limit=2)")
+plot(pol, col = "navy", add = TRUE)
+```
+
+Similarly when buffering lines that don't form a closed ring, we also have three options to control how line endings are handled: `ROUND`, `FLAT` and `SQUARE`. The default is to use rounded line endings but we can easily change that with the `endCapStyle` argument.
+
+```{r}
+line <- st_as_sfc("LINESTRING(2656000 1220000, 2657000 1221000, 2658000 1220000)", crs = "EPSG:2056")
+
+line_buff1 <- st_buffer(line, 400, endCapStyle = "ROUND")
+line_buff2 <- st_buffer(line, 400, endCapStyle = "FLAT")
+line_buff3 <- st_buffer(line, 400, endCapStyle = "SQUARE")
+
+par(mfrow = c(1, 3))
+plot(line_buff1, main = "endCapStyle = ROUND")
+plot(line, col = "navy", lwd = 2, add = TRUE)
+plot(line_buff2, main = "endCapStyle = FLAT")
+plot(line, col = "navy", lwd = 2, add = TRUE)
+plot(line_buff3, main = "endCapStyle = SQUARE")
+plot(line, col = "navy", lwd = 2, add = TRUE)
+```
+
+One last interesting possibility with lines consists of buffering only one side of the line features. We can do that by setting the `singleSide` argument to `TRUE`. Positive distance values will buffer the left-hand side (considering the line direction) of the line feature, while negative values will buffer the right-hand side.
+
+```{r}
+line_singlebuff1 <- st_buffer(line, 400, singleSide = TRUE)
+line_singlebuff2 <- st_buffer(line, -400, singleSide = TRUE)
+
+par(mfrow = c(1, 2))
+plot(line_singlebuff1)
+plot(line, col = "navy", lwd = 2, add = TRUE)
+plot(line_singlebuff2)
+plot(line, col = "navy", lwd = 2, add = TRUE)
 ```
 
 ::: callout-important
@@ -1220,6 +1285,7 @@ Run the following code to load and create everything you'll need to run the exam
 library(sf)
 muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
 sempach <- muni[muni$name == "Sempach",]
+streets <- st_read("data/geodata.gpkg", "streets", quiet = TRUE)
 obs <- read.csv("data/observations.csv")
 obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
 ```
@@ -1260,6 +1326,21 @@ temp_poly <- st_geometry(st_buffer(obs[1,], 2000))
 plot(st_union(temp_poly, sempach))
 ```
 
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
+Create an `sf` object with several points, include some points with the exact same location (but different attributes). Run the `st_union()` function on this new object and "explode" it to get the individual points. What happened?
+
+```{r}
+#| eval: false
+#| code-fold: true
+pts <- st_as_sfc(c("POINT(2657000 1219000)", "POINT(2658000 1218000)", "POINT(2659000 1217000)", "POINT(2659000 1217000)"), crs = "EPSG:2056")
+pts_data <- data.frame(species = c("wallcreeper", "alpine chough", "kingfisher", "wallcreeper"))
+pts_sf <- st_sf(pts_data, geometry = pts)
+
+st_cast(st_union(pts_sf), "POINT")
+# The points with identical location were merged (even though the other attribute was different)
+```
+:::
+
 #### Intersect geometries
 
 Computing the intersection of geometries is another common GIS operation. For example, let's calculate the intersection between the new polygon we've just created and the municipality of Sempach.
@@ -1269,6 +1350,8 @@ muni_inter <- st_intersection(sempach, temp_poly)
 muni_inter
 plot(st_geometry(muni_inter))
 ```
+
+The returned object has the same class as that of the first argument. If you intersect two `sf` objects, the attributes of both objects will also be returned.
 
 In a perfect world you'll get polygons as output when you combine polygon (or multipolygon) objects with one of these functions. However, you may also get something more exotic. Let's have a look at the following example which comes from one of the `sf` vignettes.
 
@@ -1287,13 +1370,15 @@ plot(b, add = TRUE, border = "red")
 plot(inter, add = TRUE, col = "green", lwd = 2)
 ```
 
-Geometry collections are defined in the Simple Feature standard as a collection of different vector types. For example, one feature (row) could contain 2 polygons, 1 multiline and 3 points. The output of the previous is clearly a geometry collection since the `st_intersection()` function produced 1 polygon, 1 line and 1 point. When performing an intersection or a similar operation, it is important to check that all the produced features have the expected geometry type. An geometry collection output is maybe not so common, but you may get a combination of polygons and multipolygons. Use the `st_geometry_type()` function (maybe in combination with `unique()`) to inspect the types.
+Geometry collections are defined in the Simple Feature standard as a collection of different vector types. For example, one feature (row) could contain 2 polygons, 1 multiline and 3 points. The output of the previous intersection is clearly a geometry collection since the `st_intersection()` function produced 1 polygon, 1 line and 1 point. When performing an intersection or a similar operation, it is important to check that all the produced features have the expected geometry type. An geometry collection output is maybe not so common, but you may get a combination of polygons and multipolygons. Use the `st_geometry_type()` function (maybe in combination with `unique()`) to inspect the types.
 
 Ideally we would use geometry collections directly in our analyses but you'll quickly notice that most functions don't work with them (and most GIS software don't really know what to do with them either). Therefore you'll need to decide which part of the collection is important for you. If you intersect polygons with polygons, most of the time you'll be interested in the polygons and multipolygons outputs. You can use the `st_collection_extract()` function to perform this task.
 
 ```{r}
-st_collection_extract(inter, "POLYGON")
+st_collection_extract(inter, type = "POLYGON")
 ```
+
+This function will also return multipolygons (if they exist), even though we specified `type = "POLYGON"`. More generally, if some parts of the geometry collection are MULTI\*, then all of the parts in the output will be MULTI\*.
 
 ::: {.callout-note icon="false" title="Exercise (5 minutes)"}
 Create a line object that is intersecting the streets data set. Compute the intersection using the `st_intersection()` function.
@@ -1304,16 +1389,99 @@ Create a line object that is intersecting the streets data set. Compute the inte
 temp_line <- st_as_sfc("LINESTRING(2657290 1219789, 2657090 1219789, 2657290 1219889)", crs = 2056)
 temp_inter <- st_intersection(temp_line, streets)
 st_geometry_type(temp_inter)
+
 plot(temp_line, col = "navy")
 plot(st_geometry(streets), col = "purple", add = TRUE)
 plot(temp_inter[1:3], col = "red", add = TRUE)
 plot(temp_inter[4], col = "blue", add = TRUE)
+# We get a multipoint because our line intersected the same line twice
+```
+:::
+
+#### Erase geometries
+
+The `st_difference()` function allows you to erase some parts of a geometry using another geometry (the intersection will be removed from the first one). As an example, let's create a hole in the Sempach municipality using another polygon:
+
+```{r}
+temp_poly <- st_geometry(st_buffer(obs[1,], 200))
+sempach_hole <- st_difference(sempach, temp_poly)
+plot(st_geometry(sempach_hole), col = "navy")
+```
+
+The results of this function can get extremely confusing if there are multiple overlaps since `st_difference()` (and `st_sym_difference()`) will perform the difference operation on each pair of features (note that this isn't a problem with the `st_intersection()` function). Let's have a look at the following example:
+
+```{r}
+obj1 <- st_as_sfc(c("POLYGON((-180 -20, -140 55, -50 0, -140 -60, -180 -20))", "POLYGON((-10 0, 140 60, 160 0, 140 -55, -10 0))"))
+obj2 <- st_as_sfc("POLYGON((-125 0, 0 60, 40 5, 15 -45, -125 0))")
+
+plot(obj1, col = rgb(0, 0, 1, 0.4))
+plot(obj2, col = rgb(0, 1, 0, 0.4), add = TRUE)
+```
+
+Our goal now is to remove the intersecting areas of the two `sfc` objects from the second object (in green). Most people would expect the following code to perform the appropriate task.
+
+```{r}
+diff1 <- st_difference(obj2, obj1)
+diff1
+par(mfrow = c(1, 2))
+plot(diff1[1,], col = "navy")
+plot(diff1[2,], col = "navy")
+```
+
+However, because the `st_difference()` function is working on each pair of features, we get something that might look a bit strange. The function first computed the difference between `obj2` and the first feature of `obj1`, and then the difference between `obj2` and the second feature of `obj1`. We thus get two features instead of a single one where all intersecting areas were removed. If you have large data sets with a lot of overlaps, the number of output features will explode. To achieve what we want, we first need to group the features in `obj1` in a single feature using the `st_combine()` function.
+
+```{r}
+diff2 <- st_difference(obj2, st_combine(obj1))
+diff2
+plot(diff2, col = "navy")
+```
+
+Depending on the data you're using, you'll sometimes get an error warning using this trick (due to some invalid geometries generated in the background). If this happens you can try replacing the `st_combine()` function with `st_union()` or even combine the two (i.e., `st_union(st_combine(x))`).
+
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
+Here's another output of the `st_difference()` function. Try to understand what is happening.
+
+```{r}
+#| eval: false
+obj3 <- st_as_sfc(c("POLYGON((-150 0, -100 10, -60 -5, -150 0))", "POLYGON((50 0, 120 40, 100 0, 120 -20, 50 0))"))
+
+plot(obj1, col = rgb(0, 0, 1, 0.4))
+plot(obj3, col = rgb(0, 1, 0, 0.4), add = TRUE)
+
+diff1 <- st_difference(obj1, obj3)
+diff2 <- st_difference(obj1, st_combine(obj3))
+
+diff1
+diff2
+
+par(mfrow = c(2, 2))
+plot(diff1[1,], col = "navy")
+plot(diff1[2,], col = "navy")
+plot(diff1[3,], col = "navy")
+plot(diff1[4,], col = "navy")
+
+par(mfrow = c(1, 2))
+plot(diff2[1,], col = "navy")
+plot(diff2[2,], col = "navy")
 ```
 :::
 
 ### Aggregate by attributes
 
-Aggregation can be based purely on the attributes, treating the `sf` object as a data frame using the standard `aggregate()` function. However, the `sf` package also extends the `aggregate()` function if you use an `sf` object as the first argument. Note that the nice formula notation is not possible in this case.
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(tmap)
+data(World)
+streets <- st_read("data/geodata.gpkg", "streets", quiet = TRUE)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+```
+:::
+
+Aggregation can be based purely on the attributes, treating the `sf` object as a data frame using the standard `aggregate()` function (but the geometry column will be lost). However, the `sf` package also extends the `aggregate()` function if you use an `sf` object as the first argument. Note that the nice formula notation is not possible in this case.
 
 ```{r}
 aggregate(pop_est ~ continent, FUN = sum, data = World, na.rm = TRUE)
@@ -1322,21 +1490,36 @@ world_agg
 plot(world_agg[,"pop_est"])
 ```
 
-Note that the merging is not perfect since some country borders where not perfectly contiguous.
+Note that the merging is not perfect since some country borders are not perfectly contiguous in the `World` data set.
 
-Combining aggregation with intersections allows us to compute interesting parameters for our study area. For example we can compute the total street length in buffers around bird sightings. The `st_agr()` function tells `sf` how the attributes of the data set should be considered. Here we we consider that the attributes are constant within each buffer. Depending on your version of `sf` you might get an error if you don't add this line.
+Combining aggregation with intersections allows us to compute interesting parameters for some area. For example we can compute the total street length in buffers around some bird sightings.
 
 ```{r}
 obs_buff <- st_buffer(obs[c(1, 100, 400), 1], dist = 1000)
 obs_buff$site <- 1:3
-st_agr(obs_buff) <- "constant"
 streets_clip <- st_intersection(obs_buff, st_geometry(streets))
 aggregate(st_length(streets_clip), by = list(site = streets_clip$site), FUN = "sum")
 ```
 
+If you get an error about attributes when computing the intersection, you'll need to first tell `sf` how the attributes of the data set should be considered (you should only get a warning with newer `sf` versions). Here we consider that the attributes are constant within each buffer. You can use the `st_agr()` function to do this. Use the following code before calling `st_intersection()`:
+
+```{r}
+st_agr(obs_buff) <- "constant"
+```
+
 ### Generate sample points
 
-If you need to generated points inside a polygon according to some sampling design, you'll need the `st_sample()` function. Have a look at the help file to see all the sampling types available. In the next example we sample 100 points in Sempach based on two different designs.
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+sempach <- muni[muni$name == "Sempach",]
+```
+:::
+
+If you need to generate points inside a polygon according to some sampling design, you'll need the `st_sample()` function. Have a look at the help file to see all the sampling types available. In the next example we sample 100 points in Sempach based on two different designs: random and regular. Note that the final number of points can be slightly different when using a regular sampling.
 
 ```{r}
 samples_random <- st_sample(sempach, 100, type = "random")
@@ -1359,57 +1542,66 @@ plot(st_geometry(sempach), col = "grey90")
 plot(st_geometry(samples_ssi), pch = 16, cex = 0.5, add = TRUE)
 ```
 
-### Convex hulls
+### Convex and concave hulls
 
-Sometimes you'll need to use a polygon enclosing all your geometries. This is for example often used as a crude way to estimate an animal home range based on its sightings. Convex hulls are often called minimum convex polygons (MCP) in the ecological literature. Here we extract all the White Wagtail sightings in Neuenkirch and compute the minimum convex polygon. Note that we need to group the sightings into a single multipolygon using the `st_union()` function first. Otherwise we'll get a separate convex hull for each point (and the convex hull of a single point is also a point).
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+```
+:::
+
+Sometimes you'll need to use a polygon enclosing all your geometries. This is for example often used as a crude way to estimate an animal home range based on its sightings. Convex hulls are often called minimum convex polygons (MCP) in the ecological literature. Here we extract all the White Wagtail sightings in Neuenkirch and compute the respective minimum convex polygon. Note that we need to group the sightings into a single multipolygon using the `st_union()` or `st_combine()` function first. Otherwise we'll get a separate convex hull for each point (and that's rather useless since the convex hull of a single point is also a point).
 
 ```{r}
 obs_wagtail <- obs[obs$name == "White Wagtail",]
 obs_wagtail_neuenkirch <- obs_wagtail[muni[muni$name == "Neuenkirch",],]
-conv_hull <- st_convex_hull(st_union(obs_wagtail_neuenkirch))
+conv_hull <- st_convex_hull(st_combine(obs_wagtail_neuenkirch))
 plot(conv_hull, col = "grey90")
 plot(st_geometry(obs_wagtail_neuenkirch), pch = 16, add = TRUE)
 ```
 
+If you want to compute separate convex hull for groups of points (based on some grouping factor such as individual identity), you need to use the `aggregate()` function. Let's imagine we need separate convex hulls for the White Wagtail sightings in Sursee, Schenkon and Oberkirch. We first need to compute a spatial join to know the municipality of all the points, then we can aggregate and compute the three convex hulls.
+
+```{r}
+obs_wagtail <- st_intersection(obs_wagtail, muni[muni$name %in% c("Sursee", "Oberkirch", "Schenkon"),])
+
+obs_wagtail_agg <- aggregate(obs_wagtail, list(obs_wagtail$name.1), FUN = length)
+conv_hull <- st_convex_hull(obs_wagtail_agg)
+
+plot(st_geometry(conv_hull), col = 2:4)
+plot(st_geometry(obs_wagtail_agg), pch = 15:17, add = TRUE)
+```
+
 If you're computing home ranges and need a minimum convex polygon enclosing only a given percentage of the points (e.g. 95%), have a look at the `mcp()` function in the `adehabitatHR` package.
 
-### CRS transformations
-
-If the data sets you're using have different CRSs, it's usually a good idea to transform some of them so that they all have the same CRS. We need the `st_transform()` function to do this. Sometimes we also say that we "project" the data to another CRS (however, transformations between geographic CRSs are not really projections).
-
-Here we first check the CRS of the `World` data set using the `st_crs()` function and compute a graticule (grid). Then we project the data set to three different projected CRSs, the Swiss CRS, the Equal Earth projection and the Robinson projection. If we use a CRS with an EPSG number, we can also use the integer value directly (without specifying "EPSG:"). However it's a good habit to always specify the provider to avoid confusions.
+Concave hulls (also known as alpha-shapes) are more flexible than convex hulls since the enclosing polygon can be, as the name suggests, concave and have holes. The concavity is controlled by the `ratio` argument: a value of 0 returns a maximally concave hull while a value of 1 returns a convex hull. Holes are controlled by the `allow_holes` argument.
 
 ```{r}
-st_crs(World)
-grat <- st_graticule()
-world_ch <- st_transform(World, "EPSG:2056")
-grat_ch <- st_transform(grat, "EPSG:2056")
-world_equal <- st_transform(World, "EPSG:8857")
-grat_equal <- st_transform(grat, "EPSG:8857")
-world_rob <- st_transform(World, "ESRI:54030")
-grat_rob <- st_transform(grat, "ESRI:54030")
+conc_hull1 <- st_concave_hull(st_combine(obs_wagtail_neuenkirch), ratio = 0)
+conc_hull2 <- st_concave_hull(st_combine(obs_wagtail_neuenkirch), ratio = 0.5)
+
+par(mfrow = c(1, 2))
+plot(conc_hull1, col = "grey90")
+plot(st_geometry(obs_wagtail_neuenkirch), pch = 16, add = TRUE)
+plot(conc_hull2, col = "grey90")
+plot(st_geometry(obs_wagtail_neuenkirch), pch = 16, add = TRUE)
 ```
-
-When we plot that data, we first see that, not surprisingly, the Swiss CRS is not adapted at all for global data, and that the Equal Earth and Robinson projections give a pleasing result. Both of these projections are good choices for world maps.
-
-```{r}
-#| fig-asp: 1
-par(mfrow = c(2, 2), mar = c(1, 1, 1, 1))
-plot(st_geometry(World), col = "grey90")
-plot(st_geometry(grat), col = "lightgrey", add = TRUE)
-plot(st_geometry(world_ch), col = "grey90")
-plot(st_geometry(grat_ch), col = "lightgrey", add = TRUE)
-plot(st_geometry(world_equal), col = "grey90")
-plot(st_geometry(grat_equal), col = "lightgrey", add = TRUE)
-plot(st_geometry(world_rob), col = "grey90")
-plot(st_geometry(grat_rob), col = "lightgrey", add = TRUE)
-```
-
-::: callout-important
-The `st_crs()` function is used to query or assign a CRS, but it does not perform any CRS transformation!
-:::
 
 ### Neighborhood analyses
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+```
+:::
 
 We've already seen that the `sf` package provides some nice functions to study the topology of geometries. If you need more you can have a look at the `spdep` package which excels at neighborhood analyses. First we compute a neighbor list based on municipalities sharing a common boundary using the `poly2nb()` function. **Add something about the terra function nearest!!!!**
 
@@ -1506,13 +1698,59 @@ nb_winbugs <- nb2WB(muni_neigh)
 nb2INLA(file = "export/nbinla.txt", muni_neigh)
 ```
 
+### CRS transformations
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(tmap)
+data(World)
+```
+:::
+
+If the data sets you're using have different CRSs, it's usually a good idea to transform some of them so that they all have the same CRS. We need the `st_transform()` function to do this. Sometimes we also say that we "project" the data to another CRS (however, transformations between geographic CRSs are not really projections).
+
+Here we first check the CRS of the `World` data set using the `st_crs()` function and compute a graticule (grid). Then we project the data set to three different projected CRSs, the Swiss CRS, the Equal Earth projection and the Robinson projection. If we use a CRS with an EPSG number, we can also use the integer value directly (without specifying "EPSG:"). However it's a good habit to always specify the provider to avoid confusions.
+
+```{r}
+st_crs(World)
+grat <- st_graticule()
+world_ch <- st_transform(World, "EPSG:2056")
+grat_ch <- st_transform(grat, "EPSG:2056")
+world_equal <- st_transform(World, "EPSG:8857")
+grat_equal <- st_transform(grat, "EPSG:8857")
+world_rob <- st_transform(World, "ESRI:54030")
+grat_rob <- st_transform(grat, "ESRI:54030")
+```
+
+When we plot that data, we first see that, not surprisingly, the Swiss CRS is not adapted at all for global data, and that the Equal Earth and Robinson projections give a pleasing result. Both of these projections are good choices for world maps.
+
+```{r}
+#| fig-asp: 1
+par(mfrow = c(2, 2), mar = c(1, 1, 1, 1))
+plot(st_geometry(World), col = "grey90")
+plot(st_geometry(grat), col = "lightgrey", add = TRUE)
+plot(st_geometry(world_ch), col = "grey90")
+plot(st_geometry(grat_ch), col = "lightgrey", add = TRUE)
+plot(st_geometry(world_equal), col = "grey90")
+plot(st_geometry(grat_equal), col = "lightgrey", add = TRUE)
+plot(st_geometry(world_rob), col = "grey90")
+plot(st_geometry(grat_rob), col = "lightgrey", add = TRUE)
+```
+
+::: callout-important
+The `st_crs()` function is used to query or assign a CRS, but it does not perform any CRS transformation!
+:::
+
 ## Tips and tricks for rasters
 
 ### Reading and writing raster data
 
-As we saw earlier, we need another package to import raster data sets. The `rast()` function from the `terra` package is what we need. It doesn't matter if our raster is continuous, discrete, or contains several bands, the `rast()` function will create the correct `terra` object. However don't forget that it's only a pointer to the data set, the full raster is not imported into memory. Calling the object will display some basic information about the data set.
+As we saw earlier, we are going to use another package to import raster data sets. The `rast()` function from the `terra` package is what we need. It doesn't matter if our raster is continuous, discrete, or contains several bands, the `rast()` function will create the correct `terra` object. Calling the object will display some basic information about the data set. However don't forget that it's only a pointer to the data set, the full raster will not be imported into memory.
 
-The digital elevation model is an extract of the DHM25 data set provided by Swisstopo, the orthophoto is an extract of the SWISSIMAGE data set also provided by Swisstopo.
+The digital elevation model is an extract of the [DHM25](https://www.swisstopo.admin.ch/en/height-model-dhm25){target="_blank"} data set provided by Swisstopo, the orthophoto is an extract of the [SWISSIMAGE](https://www.swisstopo.admin.ch/en/orthoimage-swissimage-10){target="_blank"} data set also provided by Swisstopo.
 
 ```{r}
 #| echo: false
@@ -1532,9 +1770,9 @@ ortho
 plot(ortho)
 ```
 
-Note that the orthophoto was plotted in a different way (no axes, no legend). The `terra` package automatically detected that the raster had 3 bands and made the assumption that the bands corresponded to red, green and blue intensity values. If this assumption is not correct, you can use the `plotRGB()` function to get the desired plot.
+Note that the orthophoto was plotted in a different way (no axes, no legend). The `terra` package automatically detected that the raster had 3 bands and made the assumption that the bands corresponded to red, green and blue intensity values. If this assumption is not correct, you can use the `plotRGB()` function and specify the RGB bands manually to get the desired plot.
 
-Similarly we can import a raster containing discrete values, such as a landcover/landuse data set. The following one is an extract from the Swiss landuse statistics, provided by the Federal Statistical Office. Note that the CRS is not defined, this will happen more often with raster data found in the wild than with vector data. Fortunately we know which CRS was used and we can add this information to the data set. Moreover, `terra` is not recognizing automatically that we're processing a discrete raster. That's why we need to use the `as.factor()` function.
+Similarly we can import a raster containing discrete values, such as a landcover/landuse data set. The following one is an extract from the [Swiss Land Use Statistics](https://www.bfs.admin.ch/bfs/en/home/services/geostat/swiss-federal-statistics-geodata/land-use-cover-suitability/swiss-land-use-statistics.html){target="_blank"}, provided by the Federal Statistical Office. Note that the CRS is not defined, this will happen more often with raster data found in the wild than with vector data. Fortunately we know which CRS was used and we can add this information to the data set. Moreover, `terra` is not recognizing automatically that we're processing a discrete raster. That's why we need to use the `as.factor()` function.
 
 ```{r}
 landcover <- rast("data/landcover.tif")
@@ -1580,6 +1818,16 @@ writeRaster(elev2[["dem"]], "export/dem2.tif", overwrite = TRUE)
 
 ### Summarize rasters
 
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(terra)
+elev <- rast("data/dem.tif")
+landcover <- rast("data/landcover.tif")
+```
+:::
+
 In the GIS world, functions acting on the whole raster (using all pixels) to produce some output are called global functions. They are mostly used to produce some descriptive statistics on the data set. It is therefore not so surprising that `terra` provides such a function. If you prefer plots, the `hist()` and `boxplot()` functions have also been extended to support `SpatRaster` objects.
 
 ```{r}
@@ -1597,6 +1845,15 @@ freq(landcover)
 ```
 
 ### Spatial subsetting
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(terra)
+elev <- rast("data/dem.tif")
+```
+:::
 
 If you need to spatially subset a raster, you can either use another raster defining the zone you want to extract, or a polygon enclosing the area. First we'll have a look at the former. We first import our raster mask.
 
@@ -1638,6 +1895,16 @@ With vector data, you can directly use the `mask()` function, without clipping t
 
 ### Aggregation and resampling
 
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(terra)
+elev <- rast("data/dem.tif")
+landcover <- rast("data/landcover.tif")
+```
+:::
+
 Sometimes you will need to reduce the resolution of your rasters (e.g. if they're too large to be processed efficiently). This can be easily achieve using the `aggregate()` function. The `fact` argument is the aggregation factor. For example a value of 2 means 2 pixels in the horizontal direction and 2 pixels in the vertical direction, so that 4 pixels will be aggregated into one. If you need to disaggregate a raster, have a look at the `disagg()` function.
 
 ```{r}
@@ -1668,6 +1935,16 @@ compareGeom(landcover_resample, elev)
 The `compareGeom()` function that the rasters have the same geometries (by default: same extent, number of rows and columns, projection, resolution, and origin), and hence are now aligned. Check how the extent and resolution changed after the resampling.
 
 ### Classify rasters
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(terra)
+elev <- rast("data/dem.tif")
+landcover <- rast("data/landcover.tif")
+```
+:::
 
 Sometimes you'll need to classify/reclassify rasters. For a continuous raster we can easily do this by hand, but as we will see `terra` is providing more efficient functions.
 
@@ -1717,6 +1994,21 @@ forests_agg <- aggregate(r, 10, fun = function(i) {sum(i) / 100})
 
 ### Extract pixel values
 
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(terra)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+obs_buff <- st_buffer(obs[c(1, 2, 5),], dist = 80)
+elev <- rast("data/dem.tif")
+landcover <- rast("data/landcover.tif")
+elev_resample <- resample(elev, landcover, method = "bilinear")
+```
+:::
+
 Before doing a statistical analysis, it is quite common to collect all the covariates as GIS layers. We've already seen how to extract information from vector data sets using spatial joins. There is a similar procedure for raster data sets. The most common operation consists of extracting raster values at some given points/sites.
 
 Note that `terra` is using its own data model to store and process vector data (and hence doesn't use the classes defined by `sf`). The `terra` class for vector data is called `SpatVector`. Fortunately it is very easy to convert `sf` objects to `SpatVector` objects using the `vect()` function. If you need to convert a `SpatVector` object to `sf`, you can use the `st_as_sf()` function.
@@ -1753,6 +2045,22 @@ vals_avg <- extract(elev, vect(obs_buff), fun = mean)
 The `extract()` function is really powerful (and fast) and has a lot of additional possibilities. Don't hesitate to have a look at its help file.
 
 ### Combine rasters
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(terra)
+elev <- rast("data/dem.tif")
+landcover <- rast("data/landcover.tif")
+reclMat_landcover <- matrix(c(1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 10, 1, 11, 2, 12, 2,
+                    13, 2, 14, 2, 15, 2, 16, 2, 17, 2, 18, 2, 19, 3, 20, 3, 21, 3, 22, 3, 23, 4,
+                    24, 4, 25, 4, 26, 4), ncol = 2, byrow = TRUE)
+landcover_recl <- classify(landcover, reclMat_landcover)
+landcover_layers <- segregate(landcover_recl)
+names(landcover_layers) <- c("settlements", "agriculture", "forest", "unproductive")
+```
+:::
 
 We've already seen that you can combine different rasters in a multiband data raster, if they're properly aligned and have the same extent.
 
@@ -1792,6 +2100,24 @@ plot(as.factor(elev_land))
 ```
 
 ### Focal analysis
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(terra)
+elev <- rast("data/dem.tif")
+ortho <- rast("data/sempach_ortho.tif")
+landcover <- rast("data/landcover.tif")
+reclMat_landcover <- matrix(c(1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 10, 1, 11, 2, 12, 2,
+                    13, 2, 14, 2, 15, 2, 16, 2, 17, 2, 18, 2, 19, 3, 20, 3, 21, 3, 22, 3, 23, 4,
+                    24, 4, 25, 4, 26, 4), ncol = 2, byrow = TRUE)
+landcover_recl <- classify(landcover, reclMat_landcover)
+landcover_layers <- segregate(landcover_recl)
+names(landcover_layers) <- c("settlements", "agriculture", "forest", "unproductive")
+forests <- landcover_layers[[3]]
+```
+:::
 
 Until now we saw examples of global, zonal and local analyses with raster data. Now we're going to dive in the beautiful world of focal analyses. Note that people doing data science and mathematics will usually use the word convolution instead. Focal means that we're not only considering the pixel value, but also the values of the neighboring pixels. The neighborhood is called kernel or moving window and is usually a square (like a 3x3, the focal pixel and its 8 neighbors) or a circle. Once the neighborhood is defined, we perform an aggregation of the pixel values (e.g. by summing or averaging) within the neighborhood and store the output as the new value for the focal cell, and then we move the window to the next pixel. The following figure shows a example using a 3x3 moving window and the minimum as the aggregating function.
 
@@ -1841,6 +2167,20 @@ plot(c(ortho_red, ortho_red_focal), col = grey.colors(256), legend = FALSE)
 If you need to compute some typical indices used in landscape ecology within the moving window, then have a look at the `landscapemetrics` package.
 
 ### Generate raster covariates
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(terra)
+elev <- rast("data/dem.tif")
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+sempach <- muni[muni$name == "Sempach",]
+```
+:::
 
 The `terra` package is also really good at generating new covariates. For example you can use the `terrain()` function to compute terrain characteristics from elevation data. The available outputs are: slope, aspect, TPI, TRI, roughness and flow direction.
 
@@ -1898,6 +2238,18 @@ plot(trim(dist_sempach))
 
 ### Rasterize vector data
 
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(terra)
+elev <- rast("data/dem.tif")
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+sempach <- muni[muni$name == "Sempach",]
+```
+:::
+
 Vector data provides a better precision but some operations can be really slow when using large data sets. Sometimes it can be interesting to convert your vector data sets to rasters. This will allow you to perform analyses that would have been to slow or even impossible using vectors.
 
 You'll need the `rasterize()` function to perform such transformations. The second argument is a template raster data set that will be used to provide the extent and resolution. You also need to specify a single attribute that will be used. It is not possible to rasterize a vector data set to a multiband raster.
@@ -1918,6 +2270,16 @@ plot(nobs)
 
 ### CRS transformations
 
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(terra)
+elev <- rast("data/dem.tif")
+landcover <- rast("data/landcover.tif")
+```
+:::
+
 Performing CRS transformations on vector data sets in relatively easy since you only have to transform the vertices. It is a bit more complex with raster data sets. Projecting a raster data involves a resampling, the geometric characteristics of your raster will change and the pixel values will be recomputed. If you have vector data in a specific CRS and rasters in another CRS but you want to use a common CRS, it's usually better to transform the vectors. Since the operation involves resampling we also need to define the interpolation function. As we've seen before, you need to be careful when projecting discrete rasters and use nearest neighbor interpolation.
 
 ```{r}
@@ -1936,11 +2298,27 @@ dim(elev)
 dim(elev_wgs84)
 ```
 
-## Making maps
+## Static maps
 
 Since a few years, it is possible to make really attractive maps using only R. For example, almost of the maps of the Swiss Breeding Bird Atlas 2013-16 were produced in R. Standard GIS software will still provide more advanced cartographic tools but R will be powerful enough for most cases. Moreover you definitely have a big advantage in terms of reproducibility. In this part we will first look at how we can use `sf` and `terra` standard plotting functions to make simple maps. Then we'll use the package `tmap` which provides interesting tools to make more complex maps in a more or less intuitive way. In the end we'll have a look at how we can generate dynamic maps such as the ones you usually find on the web.
 
 ### Basic maps
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(terra)
+library(tmap)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+data(World)
+soi <- st_as_sfc("POINT(2657271 1219754)", crs = "EPSG:2056")
+elev <- rast("data/dem.tif")
+```
+:::
 
 As we've seen in some previous examples, the basic function to make maps is simply the `plot()` function. Both `sf` and `terra` extend this function to support vector and raster data sets. When we create maps, we usually consider the different data sets as layers that we combine to produce a nice output. This is why we will often use the `add = TRUE` argument in the `plot()` function. Most of the standard arguments provided by the standard `plot()` function (such as `pch`, `lwd`, `cex`, etc.) are also supported for `sf` objects. If you want to see all the additional parameters, you can check the help files (`?sf::plot` and `?terra::plot`). Here's a simple example:
 
@@ -1996,6 +2374,19 @@ plot(st_transform(temp_poly, 4326), col = "grey90", add = TRUE)
 
 ### Exporting high quality maps
 
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(terra)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+ortho <- rast("data/sempach_ortho.tif")
+```
+:::
+
 Using the default R graphic device doesn't always produce good quality maps, especially if you need to use them for publications. If you want high quality maps you can use the PNG `cairo` graphic device. If you're producing maps containing orthophotos or topographic maps, you should use the JPEG cairo device instead.
 
 ```{r}
@@ -2016,6 +2407,15 @@ plot(ortho, maxcell = Inf)
 ```
 
 ### Swiss map with hillshade
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(terra)
+```
+:::
 
 If you need a nice Swiss map, you can use the following data and code snippet. The data and the hillshade were produced by Swisstopo and you should add the copyright if you use them. Note how the hillshade is customized and how the rivers get larger.
 
@@ -2052,9 +2452,13 @@ plot(st_geometry(rivers), col = rgb(69, 138, 230, maxColorValue = 255), add = TR
 plot(st_geometry(lakes), col = rgb(162, 197, 243, maxColorValue = 255), border = rgb(69, 138, 230, maxColorValue = 255), add = TRUE)
 ```
 
-### Static maps with tmap
+### tmap
 
 If you want to make more complex maps, you can still achieve almost everything using standard plotting procedures but you'll spend a lot of time trying to hack everything. If you're a `ggplot2` user, you can of course use it with spatial data. However there's another package, `tmap`, that is similar to `ggplot2` but more intuitive for maps and more GIS friendly. The `tmap` package is also based on the grammar of graphics approach that separates data and aesthetics app.
+
+:::callout-important
+This tutorial was written for `tmap` version 3.x. You will get strange results when using `tmap` version 4.x. I'll try to update this part as soon as possible!
+:::
 
 #### Mapping layers
 
@@ -2206,7 +2610,10 @@ map1 <- tm_shape(muni) + tm_polygons()
 tmap_save(map1, "mymap.png")
 ```
 
-### Dynamic maps
+### mapsf
+
+## Dynamic maps
+### tmap
 
 The `tmap` package is not only amazing for static maps, you can also produce dynamic maps such the ones you find on the web. You need to switch the `tmap`mode using `tmap_mode("view")`. If you want to produce static maps, you can switch back to the standard mode using `tmap_mode("plot")`. Most of the functions and parameters are also available for dynamic maps. Note that the data is automatically projected to the Web Mercator projection.
 
@@ -2235,6 +2642,8 @@ If you need the Swiss topographic map with colors, use the following URL: https:
 
 If you need the orthophotos, use the following URL: https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg
 
+### mapview
+
 The `tmap` package is sometimes too complex for simple visualizations. You can also use the `mapview` package which is really efficient for large data sets.
 
 ```{r}
@@ -2260,6 +2669,9 @@ The `mapview` package can also plot raster data sets, but you need to convert th
 elev_stars <- stars::st_as_stars(elev)
 mapview(elev_stars, alpha.regions = 0.5)
 ```
+
+### leaflet
+### mapgl
 
 ## Using QGIS through R
 
@@ -2310,6 +2722,7 @@ Here's a non-exhaustive list of packages you can use to download GIS data.
 | rnoaa | Imports National Oceanic and Atmospheric Administration (NOAA) climate data |
 | elevatr | Import digital elevation models |
 | giscoR | Tools to download data from the GISCO (Geographic Information System of the Commission) Eurostat database |
+| rsi | Download Landsat and Sentinel data and compute spectral indices |
 | MODIStsp | Download MODIS satellite data |
 | swissgd | Download data from the Swiss geodata infrastructure <https://github.com/zumbov2/swissgd>{target="_blank"} |
 
