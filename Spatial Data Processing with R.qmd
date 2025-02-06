@@ -112,15 +112,21 @@ install.packages("terra")
 install.packages("lwgeom")
 install.packages("spatstat.random")
 install.packages("spdep")
+install.packages("httr2")
 install.packages("tmap")
 install.packages("mapview")
 install.packages("tmaptools")
-install.packages("maptiles")
+install.packages("classInt")
 install.packages("leaflet.extras2")
 install.packages("leafsync")
+install.packages("qgisprocess")
 ```
 
 The required data is available on the GitHub repository (<https://github.com/jguelat/R-GIS>{target="_blank"}). You'll also find all the code needed to re-create this document.
+
+::: callout-important
+A new major version of tmap (v4) was released last week. Unfortunately it breaks some of the examples shown in this tutorial and I had not enough time to make all the changes needed. Therefore please install an older version (v3) before running the tmap examples. You can download it from my OneDrive: [Download tmap v3](https://vogelwarte-my.sharepoint.com/:u:/g/personal/jerome_guelat_vogelwarte_ch/Edt2uVOziSlKi_MkwczypUUBTbhuWe0LyaCwWFqCxQgvwQ?download=1). I will update the code as soon as possible.
+:::
 
 ## Vector data
 
@@ -128,7 +134,7 @@ The required data is available on the GitHub repository (<https://github.com/jgu
 
 The main vector types are points, lines and polygons (or a combination thereof) and the point is the base of all these types. For example a simple line consists of 2 connected points, similarly an ordered sequence of connected points will represent a more complex line (often called a polyline). A simple polygon will be modeled as an external ring, which is a special type of polyline where the first and last points are identical. In the case of lines and polygons we often speak of vertices to describe these points. Things can be a bit more complex, for example a polygon could have a hole which is modeled as an internal ring.
 
-The **Simple Feature** standard ([full documentation](https://portal.ogc.org/files/?artifact_id=25355){target="_blank"}) was developed to be sure that we all speak the same language when describing vector elements. The specification describes 18 geometry types, but don't worry only 7 of them will be useful for us. The following figure shows these 7 types (source: Lovelace *et al.*, 2019):
+The **Simple Feature** standard ([full documentation](https://portal.ogc.org/files/?artifact_id=25355){target="_blank"}) was developed to be sure that we all speak the same language when describing vector elements. The specification describes 18 geometry types, but don't worry only 7 of them will be useful for us. The following figure shows these 7 types (source: Lovelace *et al.*, 2019[@lovelace_geocomputation_2019]):
 
 ![](figures/sf-classes.png)
 
@@ -145,13 +151,13 @@ In most GIS softwares (including R), simple features are internally encoded usin
 -   a polygon (without a hole): `POLYGON ((10 5, 10 9, 5 8, 4 2, 10 5))`
 -   a multilinestring: `MULTILINESTRING ((1 1, 2 4, 5 10), (2 2, 5 2))`
 
-The geometry is of course essential in order to have a spatial information but the vector data model also allows storing non-spatial attributes (often called *attribute table*) for each feature. As we will see, these tables are stored as data frames in R and each column will store some property of the related feature (identification number, name, etc.). Each row relates to a single spatial feature (which can consist of several geometries if its type is MULTI\*). The following figure shows some examples (source: Tennekes & Nowosad, 2021):
+The geometry is of course essential in order to have a spatial information but the vector data model also allows storing non-spatial attributes (often called *attribute table*) for each feature. As we will see, these tables are stored as data frames in R and each column will store some property of the related feature (identification number, name, etc.). Each row relates to a single spatial feature (which can consist of several geometries if its type is MULTI\*). The following figure shows some examples (source: Tennekes & Nowosad, 2021[@tennekes_elegant_2021]):
 
 ![](figures/vector-data-model-1.png){width="600"}
 
 ### A first look at vector data in R
 
-Let's have a look at how R stores a vector data set. The main classes and methods needed to work with spatial vector data are defined in the `sf` package (Pebesma, 2018). We will also load the `tmap` package (Tennekes, 2018) to have access to some spatial data sets.
+Let's have a look at how R stores a vector data set. The main classes and methods needed to work with spatial vector data are defined in the `sf` package. We will also load the `tmap` package to have access to some spatial data sets.
 
 ```{r}
 library(tmap)
@@ -200,7 +206,7 @@ Note that the color scale was adapted depending on the available values in the f
 plot(st_geometry(World))
 ```
 
-:::callout-note
+::: callout-note
 We haven't done it here, but, as we will see later, it is better to first project everything using an appropriate projection when you want to plot global data (like the previous world maps).
 :::
 
@@ -226,7 +232,7 @@ library(sf)
 ```
 :::
 
-Most of the time you won't need to create your own `sf` objects from scratch since you'll import some existing GIS data. But if you need to, there are special functions to help you. This is also a good way to get a better understanding of the structure of `sf` objects. The standard process is shown in the following figure (source: Lovelace *et al.*, 2019):
+Most of the time you won't need to create your own `sf` objects from scratch since you'll import some existing GIS data. But if you need to, there are special functions to help you. This is also a good way to get a better understanding of the structure of `sf` objects. The standard process is shown in the following figure (source: Lovelace *et al.*, 2019[@lovelace_geocomputation_2019]):
 
 ![](figures/02-sfdiagram.png){width="800"}
 
@@ -415,6 +421,8 @@ The following CRSs are especially interesting for us:
 
 ::: {.callout-important title="Proj4strings"}
 When looking for examples on the web, you will often find code snippets using what is called a proj4string to define a CRS or to reproject data. For example the proj4string for the current Swiss CRS looks like this: `+proj=somerc +lat_0=46.9524055555556 +lon_0=7.43958333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs +type=crs`. This was the standard way of describing CRSs until a few years ago. You should NOT use these strings, instead always use the EPSG (or another authority) number to be on the safe side. Otherwise you may get small to medium position errors when reprojecting your data.
+
+Similarly, you will sometimes see some CRS definitions using the `+init=` syntax (e.g., `+init=EPSG:2056`). This should also be avoided for similar reasons, moreover this can also cause problems with other GIS software not recognizing the CRS properly.
 :::
 
 ::: callout-important
@@ -672,7 +680,7 @@ st_area(World[1:5,])
 st_perimeter(World[1:5,])
 ```
 
-The `s2` library performs its computations on a spheroid. For areas and lengths, it is possible to obtain a better approximation by using an ellipsoid. You can do this by turning off the `s2` library with the `sf_use_s2(FALSE)` function. In this case, `sf` will automatically use equivalent functions provided by the `lwgeom` package. These functions use algorithms from the GeographicLib library which are to my knowledge the most precise approximations you can currently get. Note that the `st_perimeter()` function won't be available if you do that. You'll need to transform the polygons to lines first (see @sec-typecasting for details), and then use the `st_length()` function. Don't forget to reactivate `s2` (using the `sf_use_s2(TRUE)` function) when you're done.
+The `s2` library performs its computations on a spheroid. For areas and lengths, it is possible to obtain a better approximation by using an ellipsoid. You can do this by turning off the `s2` library with the `sf_use_s2(FALSE)` function. In this case, `sf` will automatically use equivalent functions provided by the `lwgeom`[@pebesma_lwgeom_2023] package. These functions use algorithms from the GeographicLib library which are to my knowledge the most precise approximations you can currently get. Note that the `st_perimeter()` function won't be available if you do that. You'll need to transform the polygons to lines first (see @sec-typecasting for details), and then use the `st_length()` function. Don't forget to reactivate `s2` (using the `sf_use_s2(TRUE)` function) when you're done.
 
 ```{r}
 sf_use_s2(FALSE)
@@ -697,7 +705,7 @@ plot(st_geometry(muni_centroid), add = TRUE)
 
 For this example, you can safely ignore the warning about attributes assumed to be constant. The output of the `st_centroid()` function will be a point data set with the same number of features and the same attributes as the data set used to compute the centroids. The function simply warns you that if the value of some attribute is not constant for some polygon, then the value of this attribute for the centroid probably doesn't make a lot of sense.
 
-:::callout-tip
+::: callout-tip
 Centroids can be used to place labels inside polygons, but don't forget that polygons with strange shapes may not contain their own centroid. If you need to be sure that the point will be inside the polygon, use the `st_point_on_surface()` function.
 :::
 
@@ -1093,7 +1101,7 @@ plot(st_geometry(pt1), add = TRUE, pch = 16, col = "red")
 plot(st_geometry(pt2), add = TRUE, pch = 16, col = "red")
 ```
 
-:::callout-note
+::: callout-note
 All the `sf` objects plotted on this map have the same geographic CRS but a map is a plane... To plot this kind of data, `sf` thus needs to perform some projection. Almost all GIS software (including `sf`) use a simple projection called plate carrée which maps *x* to be the value of the longitude and *y* to be the value of the latitude. This is not a good projection if you want to publish a world map. The distortions can get quite large (e.g., Switzerland will be too elongated). We will see better alternatives later in this tutorial.
 :::
 
@@ -1222,7 +1230,7 @@ sempach_sfc <- st_geometry(sempach)
 sempach_sfc_shift <- sempach_sfc + c(500, 200)
 ```
 
-:::callout-important
+::: callout-important
 The output of an affine transformation will unfortunately lose its CRS information (it will be NA). This is a problem, especially if you plan to do further analyses or make maps with the transformed data. You can use the `st_crs()` function to reassign it based on the original data.
 
 ```{r}
@@ -1295,7 +1303,7 @@ Combining geometries from two different data sets is one of the most common anal
 
 ![](figures/venn-clip-1.png)
 
-:::callout-important
+::: callout-important
 When you combine geometries from different data sets, you need to be sure that they all have the same CRS.
 :::
 
@@ -1698,6 +1706,74 @@ nb_winbugs <- nb2WB(muni_neigh)
 nb2INLA(file = "export/nbinla.txt", muni_neigh)
 ```
 
+### Geocoding
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+```
+:::
+
+Sometimes the only geographical information you have is an address. The operation of translating an address into a geographical location (with coordinates) is called geocoding. For Switzerland, Swisstopo offers a free online tool to do that. To communicate with this tool we will use an API that is also documented by Swisstopo, with the help of the `httr2` package. First let's define a function that will allow us to query the online geocoder.
+
+```{r}
+library(httr2)
+
+swissgeocode <- function(address, nresults = 3){
+
+    # URL of the search service
+    base <- "https://api3.geo.admin.ch/"
+    endpoint <- "rest/services/api/SearchServer"
+
+    # Encode address (needed because of spaces and exotic characters in the address)
+    address_url <- URLencode(address)
+
+    # Request that will be sent to the server
+    request_string <- paste0(base, endpoint, "?searchText=", address_url, "&type=locations", "&limit=", nresults, "&sr=2056")
+
+    # Send request
+    req <- request(request_string)
+    resp <- req_perform(req)
+    # Convert JSON to R objects
+    resp_json <- resp_body_json(resp, simplifyVector = TRUE)
+
+    # The address was not found
+    if (is.null(resp_json$results) == TRUE || length(resp_json$results) == 0) {
+        warning("The address could not be located.")
+        output <- data.frame(address_origin = address, address_found = NA, x = NA, y = NA, lat = NA, lon = NA, weight = NA)
+     }
+    # The address was found
+    else {
+        # Merge results in a data frame
+        output <- data.frame(address)
+        output <- cbind(output, resp_json$results$attrs[, c("detail", "y", "x", "lat", "lon")], resp_json$results$weight)
+        # The search service switches the coordinates axes (x=y and y=x)
+        names(output) <- c("address_origin", "address_found", "x", "y", "lat", "lon", "weight")
+    }
+    return(output)
+}
+```
+
+We can test it with a random address.
+
+```{r}
+test_address <- "Seerose 1 6204 Sempach"
+results <- swissgeocode(test_address, nresults = 5)
+results <- st_as_sf(results, coords = c("x", "y"), crs = "EPSG:2056")
+results
+```
+
+If you need to geocode addresses outside of Switzerland, you can try the `geocode_OSM()` function in the `tmaptools` package. It uses a geocoder called Nominatim that is provided by OpenStreetMap. Also check the `tidygeocoder` package.
+
+```{r}
+library(tmaptools)
+results <- geocode_OSM(test_address, as.sf = TRUE)
+results
+```
+
+
 ### CRS transformations
 
 ::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
@@ -1746,6 +1822,15 @@ The `st_crs()` function is used to query or assign a CRS, but it does not perfor
 
 ## Tips and tricks for rasters
 
+::: callout-important
+The `terra` package currently has a bug causing some troubles finding the PROJ library if you manually installed another PROJ instance (e.g. this is happening when you install PostGIS). In this case you'll often see warnings referring to `PROJ: proj_create_from_database`. To solve this problem, run the following code *before* loading `terra`:
+
+```{r}
+#| eval: false
+Sys.setenv(PROJ_LIB = "")
+```
+:::
+
 ### Reading and writing raster data
 
 As we saw earlier, we are going to use another package to import raster data sets. The `rast()` function from the `terra` package is what we need. It doesn't matter if our raster is continuous, discrete, or contains several bands, the `rast()` function will create the correct `terra` object. Calling the object will display some basic information about the data set. However don't forget that it's only a pointer to the data set, the full raster will not be imported into memory.
@@ -1782,7 +1867,16 @@ landcover <- as.factor(landcover)
 plot(landcover)
 ```
 
-Rasters are nice objects to work with but sometimes it's nice with more familiar R objects. You can easily convert `SpatRaster` objects to dataframes containing the geographic coordinates of all pixels and the related pixel values.
+If a raster data set is stored online, you can also directly use it without needing to download the full data set. This works especially well with rasters stored as Cloud Optimized GeoTiff (COG) files. A COG file is a regular GeoTiff file, aimed at being hosted on a HTTP file server, with an internal organization that enables more efficient workflows on the cloud. To read such rasters, you'll need to use a trick implemented in the GDAL library: simply add the text `/vsicurl/` in front of the URL of the raster.
+
+```{r}
+url_swissimage <- "https://data.geo.admin.ch/ch.swisstopo.swissimage-dop10/swissimage-dop10_2021_2666-1211/swissimage-dop10_2021_2666-1211_0.1_2056.tif"
+url_swissimage <- paste0("/vsicurl/", url_swissimage)
+ortho_web <- rast(url_swissimage)
+plot(ortho_web)
+```
+
+Rasters are nice objects to work with but it's sometimes nice to have more familiar R objects. You can easily convert `SpatRaster` objects to data frames containing the geographic coordinates of all pixels and the related pixel values.
 
 ```{r}
 elev_vals <- values(elev)
@@ -1792,7 +1886,7 @@ head(elev_df)
 write.csv(elev_df, "export/dem.csv")
 ```
 
-Similarly, if you have a dataframe containing geographic coordinates located on a regular grid and associated values, you can easily convert it to a `terra` object with the help of the `rast()` function, by adding the argument `type = "xyz"`. This is often useful if you want to plot the predictions of a statistical model on a map, for example the distribution of a species. Here we add a new column to some dataframe filled with random values and we convert it to a 2-band raster.
+Similarly, if you have a data frame containing geographic coordinates located on a regular grid and associated values, you can easily convert it to a `terra` object with the help of the `rast()` function, by adding the argument `type = "xyz"`. This is often useful if you want to plot the predictions of a statistical model on a map, for example the distribution of a species. Here we add a new column to some data frame filled with random values and we convert it to a 2-band raster.
 
 ```{r}
 elev_df$rand <- rnorm(nrow(elev_df))
@@ -1802,14 +1896,14 @@ elev2
 plot(elev2)
 ```
 
-Exporting raster data set is really easy thanks to the `writeRaster()` function. The format will be automatically recognized based on the file name extension. As we saw in the introduction, the GeoTiff format is almost always the format we should use.
+Exporting a raster data set is really easy thanks to the `writeRaster()` function. The format will be automatically recognized based on the file name extension. As we saw in the introduction, the GeoTiff format is almost always the format we should use.
 
 ```{r}
 writeRaster(elev, "export/dem1.tif")
 writeRaster(elev2, "export/dem2.tif")
 ```
 
-Remember that the first raster was a single band raster and the second one had two bands. What is happening when we visualize the latter with QGIS? It looks like QGIS is combining the bands like an RGB raster. If you want to only export a single band, you can subset the raster data set using `[[]]`, either using the band number or name.
+Remember that the first raster was a single band raster and the second one had two bands. If you want to only export a single band, you can subset the raster data set using `[[]]`, either using the band number or name.
 
 ```{r}
 writeRaster(elev2[[1]], "export/dem2.tif", overwrite = TRUE)
@@ -1825,6 +1919,8 @@ Run the following code to load and create everything you'll need to run the exam
 library(terra)
 elev <- rast("data/dem.tif")
 landcover <- rast("data/landcover.tif")
+crs(landcover) <- "EPSG:2056"
+landcover <- as.factor(landcover)
 ```
 :::
 
@@ -1850,7 +1946,10 @@ freq(landcover)
 Run the following code to load and create everything you'll need to run the examples in this section.
 ```{r}
 #| eval: false
+library(sf)
 library(terra)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+sempach <- muni[muni$name == "Sempach",]
 elev <- rast("data/dem.tif")
 ```
 :::
@@ -1887,11 +1986,14 @@ elev_crop2 <- crop(elev, sempach)
 plot(elev_crop2)
 elev_mask2 <- mask(elev, sempach)
 plot(elev_mask2)
+```
+
+With vector data, you can directly use the `mask()` function, without clipping the extent with the `crop()` function first. However you'll still get the original extent, which means a lot of pixels with NAs. The `trim()` function allows cleaning things a bit by removing outer rows and columns full of NAs.
+
+```{r}
 elev_mask2 <- trim(elev_mask2)
 plot(elev_mask2)
 ```
-
-With vector data, you can directly use the `mask()` function, without clipping the extent with the `crop()` function first. However you'll still get the original extent, which means a lot of pixels with NAs. The trim() function allows cleaning things a bit by removing outer rows and columns full of NAs.
 
 ### Aggregation and resampling
 
@@ -1902,10 +2004,12 @@ Run the following code to load and create everything you'll need to run the exam
 library(terra)
 elev <- rast("data/dem.tif")
 landcover <- rast("data/landcover.tif")
+crs(landcover) <- "EPSG:2056"
+landcover <- as.factor(landcover)
 ```
 :::
 
-Sometimes you will need to reduce the resolution of your rasters (e.g. if they're too large to be processed efficiently). This can be easily achieve using the `aggregate()` function. The `fact` argument is the aggregation factor. For example a value of 2 means 2 pixels in the horizontal direction and 2 pixels in the vertical direction, so that 4 pixels will be aggregated into one. If you need to disaggregate a raster, have a look at the `disagg()` function.
+Sometimes you will need to reduce the resolution of your rasters (e.g., if they're too large to be processed efficiently). This can be easily achieved using the `aggregate()` function. The `fact` argument is the aggregation factor. For example a value of 2 means 2 pixels in the horizontal direction and 2 pixels in the vertical direction, so that 4 pixels will be aggregated into one. If you need to disaggregate a raster, have a look at the `disagg()` function.
 
 ```{r}
 elev_agg <- aggregate(elev, fact = 20)
@@ -1921,7 +2025,7 @@ plot(landcover_agg)
 
 Combining rasters is really easy when they're perfectly aligned (same extent, same resolution). However most of the times we get data sets that don't satisfy this condition. If possible we should first try to slightly shift and/or aggregate the rasters (or maybe crop/extend the extents). If the differences are too big, we need to transform the raster in a more radical way, we need resampling. This means taking the values of our original raster and calculate new values for our target extent and resolution.
 
-The first argument of the resample() function is the raster that needs to be resampled, the second argument is used to provide the target extent and resolution, and the third one is used to indicates the method that will be used for the interpolation of the new values. The bilinear interpolation is the default and is appropriate for continuous rasters. It assigns a weighted average of the four nearest cells of the original raster to the cell of the target one. Other interpolation algorithms are available for continuous rasters (e.g. cubic, cubic spline, etc.). However all of this don't make any sense when we need to resample a discrete raster. For them we need to use the nearest neighbor interpolation. It assigns the value of the nearest cell of the original raster to the cell of the target one.
+The first argument of the `resample()` function is the raster that needs to be resampled, the second argument is used to provide the target extent and resolution, and the third one is used to indicate the method that will be used for the interpolation of the new values. The bilinear interpolation is the default and is appropriate for continuous rasters. It assigns a weighted average of the four nearest cells of the original raster to the cell of the target one. Other interpolation algorithms are available for continuous rasters (e.g. cubic, cubic spline, etc.). However all of this don't make any sense when we need to resample a discrete raster. For them we need to use the nearest neighbor interpolation. It assigns the value of the nearest cell of the original raster to the cell of the target one.
 
 ```{r}
 elev_resample <- resample(elev, landcover, method = "bilinear")
@@ -1932,7 +2036,7 @@ landcover_resample
 compareGeom(landcover_resample, elev)
 ```
 
-The `compareGeom()` function that the rasters have the same geometries (by default: same extent, number of rows and columns, projection, resolution, and origin), and hence are now aligned. Check how the extent and resolution changed after the resampling.
+The `compareGeom()` function that the rasters have the same geometries (by default: same extent, number of rows and columns, projection, resolution, and origin), and hence are now aligned. Note how the extent and resolution changed after the resampling.
 
 ### Classify rasters
 
@@ -1943,6 +2047,8 @@ Run the following code to load and create everything you'll need to run the exam
 library(terra)
 elev <- rast("data/dem.tif")
 landcover <- rast("data/landcover.tif")
+crs(landcover) <- "EPSG:2056"
+landcover <- as.factor(landcover)
 ```
 :::
 
@@ -2005,13 +2111,15 @@ obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
 obs_buff <- st_buffer(obs[c(1, 2, 5),], dist = 80)
 elev <- rast("data/dem.tif")
 landcover <- rast("data/landcover.tif")
+crs(landcover) <- "EPSG:2056"
+landcover <- as.factor(landcover)
 elev_resample <- resample(elev, landcover, method = "bilinear")
 ```
 :::
 
 Before doing a statistical analysis, it is quite common to collect all the covariates as GIS layers. We've already seen how to extract information from vector data sets using spatial joins. There is a similar procedure for raster data sets. The most common operation consists of extracting raster values at some given points/sites.
 
-Note that `terra` is using its own data model to store and process vector data (and hence doesn't use the classes defined by `sf`). The `terra` class for vector data is called `SpatVector`. Fortunately it is very easy to convert `sf` objects to `SpatVector` objects using the `vect()` function. If you need to convert a `SpatVector` object to `sf`, you can use the `st_as_sf()` function.
+Note that `terra` is using its own data model to store and process vector data (it doesn't use the classes defined by `sf`). Hence, most `terra` functions expecting a vector data set won't accept `sf` objects. The `terra` class for vector data is called `SpatVector`. Fortunately it is very easy to convert `sf` objects to `SpatVector` objects using the `vect()` function (actually the `extract()` function is an exception and is also accepting `sf` objects). If you need to convert a `SpatVector` object to `sf`, you can use the `st_as_sf()` function.
 
 ```{r}
 vals <- extract(elev, vect(obs), ID = FALSE)
@@ -2019,9 +2127,9 @@ obs2 <- obs
 obs2$elev <- vals
 ```
 
-The output of the `extract()` function is a standard dataframe. The order of the dataframe is the same as the order of the vector data set used to extract the data, you can therefore easily append the extracted values to the `sf` point object.
+The output of the `extract()` function is a standard data frame. The order of the data frame is the same as the order of the vector data set used to extract the data, you can therefore easily append the extracted values to the `sf` point object.
 
-If you're lucky enough to have properly aligned rasters, you can combine them in a multiband data set and use the `extract()` function on this new data set. You'll also get a dataframe, with one column for each band.
+If you're lucky enough to have properly aligned rasters, you can combine them in a multiband data set and use the `extract()` function on this new data set. You'll also get a data frame, with one column for each band.
 
 ```{r}
 covariates <- c(landcover, elev_resample)
@@ -2053,6 +2161,8 @@ Run the following code to load and create everything you'll need to run the exam
 library(terra)
 elev <- rast("data/dem.tif")
 landcover <- rast("data/landcover.tif")
+crs(landcover) <- "EPSG:2056"
+landcover <- as.factor(landcover)
 reclMat_landcover <- matrix(c(1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 10, 1, 11, 2, 12, 2,
                     13, 2, 14, 2, 15, 2, 16, 2, 17, 2, 18, 2, 19, 3, 20, 3, 21, 3, 22, 3, 23, 4,
                     24, 4, 25, 4, 26, 4), ncol = 2, byrow = TRUE)
@@ -2062,7 +2172,7 @@ names(landcover_layers) <- c("settlements", "agriculture", "forest", "unproducti
 ```
 :::
 
-We've already seen that you can combine different rasters in a multiband data raster, if they're properly aligned and have the same extent.
+We've already seen that, if they're properly aligned and have the same extent, you can combine different rasters in a multiband raster data set.
 
 ```{r}
 layers <- c(landcover_layers[[1]], landcover_layers[[3]])
@@ -2109,6 +2219,8 @@ library(terra)
 elev <- rast("data/dem.tif")
 ortho <- rast("data/sempach_ortho.tif")
 landcover <- rast("data/landcover.tif")
+crs(landcover) <- "EPSG:2056"
+landcover <- as.factor(landcover)
 reclMat_landcover <- matrix(c(1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 8, 1, 9, 1, 10, 1, 11, 2, 12, 2,
                     13, 2, 14, 2, 15, 2, 16, 2, 17, 2, 18, 2, 19, 3, 20, 3, 21, 3, 22, 3, 23, 4,
                     24, 4, 25, 4, 26, 4), ncol = 2, byrow = TRUE)
@@ -2119,7 +2231,7 @@ forests <- landcover_layers[[3]]
 ```
 :::
 
-Until now we saw examples of global, zonal and local analyses with raster data. Now we're going to dive in the beautiful world of focal analyses. Note that people doing data science and mathematics will usually use the word convolution instead. Focal means that we're not only considering the pixel value, but also the values of the neighboring pixels. The neighborhood is called kernel or moving window and is usually a square (like a 3x3, the focal pixel and its 8 neighbors) or a circle. Once the neighborhood is defined, we perform an aggregation of the pixel values (e.g. by summing or averaging) within the neighborhood and store the output as the new value for the focal cell, and then we move the window to the next pixel. The following figure shows a example using a 3x3 moving window and the minimum as the aggregating function.
+Until now we saw examples of global, zonal and local analyses with raster data. Now we're going to dive in the beautiful world of focal analyses. Note that people doing data science and mathematics will usually use the word convolution instead. Focal means that we're not only considering the pixel value, but also the values of the neighboring pixels. The neighborhood is called kernel or moving window and is usually a square (like a 3x3 square, the focal pixel and its 8 neighbors) or a circle. Once the neighborhood is defined, we perform an aggregation of the pixel values (e.g. by summing or averaging) within the neighborhood and store the output as the new value for the focal cell, and then we move the window to the next pixel. The following figure shows a example using a 3x3 moving window and the minimum as the aggregating function.
 
 ![](figures/04_focal_example.png)
 
@@ -2140,7 +2252,7 @@ forests_focal_sum <- focal(forests, 5, fun = "sum")
 plot(c(forests, forests_focal_sum))
 ```
 
-In R, moving windows are stored as matrices whose values represents the weights of the neighbors. Until now we only used moving windows where all pixels in the neighborhood had the same weight. It is thus possible to define your own kind of moving window. The shape (rectangle or circle) usually doesn't have a big influence but adjusting the weights allows all kind of different results (smoothing, sharpening, edge detection, etc.). The `terra` package provides the `focalMat()` function if you need to create specific windows. The first argument will be the raster on which the focal analysis will be computed, the second is the size of the moving window (in the units of the CRS, not in pixels), and then you can specify the type. By default `focalMat()` will produce a matrix whose values sum to 1, this means that using the sum with these weights as aggregating function will actually compute the arithmetic mean. If we really want to compute the sum, we need to adjust the weights ourselves and set all non-zero values to 1.
+In R, moving windows are stored as matrices whose values represents the weights of the neighbors. Until now we only used moving windows where all pixels in the neighborhood had the same weight. Changing these weights allows you to define your own kind of moving windows. The shape (rectangle or circle) usually doesn't have a big influence but adjusting the weights allows all kind of different results (smoothing, sharpening, edge detection, etc.). The `terra` package provides the `focalMat()` function if you need to create specific windows. The first argument is the raster on which the focal analysis will be computed, the second is the size of the moving window (in the units of the CRS, not in pixels), and then you can specify the type. By default `focalMat()` will produce a matrix whose values sum to 1, this means that using the sum with these weights as aggregating function will actually compute the arithmetic mean. If we really want to compute the sum, we need to adjust the weights ourselves and set all non-zero values to 1.
 
 ```{r}
 (fwin_rect <- focalMat(forests, c(200, 200), type = "rectangle"))
@@ -2200,7 +2312,7 @@ aspect_rad <- terrain(elev, "aspect", unit = "radians")
 eastness <- sin(aspect_rad)
 northness <- cos(aspect_rad)
 
-plot(c(eastness, northness))
+plot(c(eastness, northness), main = c("eastness", "northness"))
 ```
 
 ::: {.callout-note icon="false" title="Exercise (5 minutes)"}
@@ -2215,7 +2327,7 @@ eastness_corr <- mask(eastness, flat_slope, updatevalue = 0)
 ```
 :::
 
-We can also easily calculate distance rasters using the `distance()` function. In the next example, the value of each pixel in the output raster will be the distance to the nearest bird sighting. You can use this with other vector types, for example to compute the distance from streets or the distance to coastlines.
+We can also easily calculate distance rasters using the `distance()` function. In the next example, the value of each pixel in the output raster will be the distance to the nearest bird sighting. You can use this with other vector types, for example to compute the distance from streets or the distance to coastlines. The raster used as the first argument is there only to define the extent and resolution of the output (the values of the input raster are ignored).
 
 ```{r}
 dist_from_obs <- distance(elev, vect(obs))
@@ -2252,7 +2364,7 @@ sempach <- muni[muni$name == "Sempach",]
 
 Vector data provides a better precision but some operations can be really slow when using large data sets. Sometimes it can be interesting to convert your vector data sets to rasters. This will allow you to perform analyses that would have been to slow or even impossible using vectors.
 
-You'll need the `rasterize()` function to perform such transformations. The second argument is a template raster data set that will be used to provide the extent and resolution. You also need to specify a single attribute that will be used. It is not possible to rasterize a vector data set to a multiband raster.
+You'll need the `rasterize()` function to perform such transformations. The first argument is the vector data set you want to rasterize, the second argument is a template raster data set that will be used to provide the extent and resolution. You also need to specify a single attribute that will be used. It is not possible to rasterize a vector data set to a multiband raster.
 
 ```{r}
 muni_raster <- rasterize(vect(muni), elev, field = "popsize")
@@ -2268,6 +2380,33 @@ nobs[is.na(nobs)] <- 0
 plot(nobs)
 ```
 
+### Viewshed
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(terra)
+soi <- st_as_sfc("POINT(2657271 1219754)", crs = "EPSG:2056")
+elev <- rast("data/dem.tif")
+```
+:::
+
+Using a digital elevation model and some knowledge about the curvature of the earth and refraction of the atmosphere, it is possible to estimate the area that is visible from a specific point of view. This is often called a viewshed analysis. Of course this doesn't take buildings or trees/forests into account (except if you use a digital surface model which includes natural and human-made structures). All of this is easily computed with the `viewshed()` function. Note that you need to specify the coordinates of the observer as a vector (you can't directly use an `sf` or `sfc` object). Let's check what's visible from our location.
+
+```{r}
+v <- viewshed(elev, st_coordinates(soi))
+plot(v)
+```
+
+The function can also take into account that your point of view is above the ground (e.g., observation tower or building). Similarly you can also specify the height of a target. Let's imagine that we're standing on the roof of the building and we want to compute the area where we would see a Golden Eagle flying 100m above the ground (and making the assumption that we have really good binoculars).
+
+```{r}
+v <- viewshed(elev, st_coordinates(soi), observer = 10, target = 100)
+plot(v)
+```
+
 ### CRS transformations
 
 ::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
@@ -2277,6 +2416,8 @@ Run the following code to load and create everything you'll need to run the exam
 library(terra)
 elev <- rast("data/dem.tif")
 landcover <- rast("data/landcover.tif")
+crs(landcover) <- "EPSG:2056"
+landcover <- as.factor(landcover)
 ```
 :::
 
@@ -2300,7 +2441,7 @@ dim(elev_wgs84)
 
 ## Static maps
 
-Since a few years, it is possible to make really attractive maps using only R. For example, almost of the maps of the Swiss Breeding Bird Atlas 2013-16 were produced in R. Standard GIS software will still provide more advanced cartographic tools but R will be powerful enough for most cases. Moreover you definitely have a big advantage in terms of reproducibility. In this part we will first look at how we can use `sf` and `terra` standard plotting functions to make simple maps. Then we'll use the package `tmap` which provides interesting tools to make more complex maps in a more or less intuitive way. In the end we'll have a look at how we can generate dynamic maps such as the ones you usually find on the web.
+Since a few years, it is possible to make really attractive maps using only R. For example, almost of the maps of the Swiss Breeding Bird Atlas 2013-16 were produced in R. Standard GIS software will still provide more advanced cartographic tools but R will be powerful enough for most cases. Moreover you definitely have a big advantage in terms of reproducibility. In this part we will first look at how we can use `sf` and `terra` standard plotting functions to make simple maps. Then we'll use the package `tmap` which provides interesting tools to make more complex maps in a more or less intuitive way.
 
 ### Basic maps
 
@@ -2370,6 +2511,53 @@ temp_poly <- st_buffer(soi, 2000000)
 plot(st_geometry(World))
 plot(temp_poly, col = "grey90", add = TRUE)
 plot(st_transform(temp_poly, 4326), col = "grey90", add = TRUE)
+```
+
+### World maps and globes
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(tmap)
+data(World)
+```
+:::
+
+As we've seen before, the default projection that is used to plot data with a geographic CRS is not ideal. The distortions are large and the map will appear elongated. If you want to plot world maps, I recommend using either the Robinson projection, which was designed to be aesthetically pleasing, or the Equal-Earth projection, which has the advantage of having equal areas. The Winkel tripel projection can also be a good choice. I also strongly recommend the xkcd comic on map projections (<https://xkcd.com/977>{target="_blank"}).
+
+```{r}
+plot(st_transform(st_geometry(World), "ESRI:54030"))
+plot(st_transform(st_geometry(World), "EPSG:8857"))
+```
+
+If you want to plot a 2D globe, you can use the orthographic projection. You can center the globe on one point by modifying the `lat_center` and `lon_center` variables in the following code.
+
+```{r}
+library(s2)
+options(s2_oriented = TRUE) # don't change orientation of the geometries (since the orientation is already correct)
+
+lat_center <- 40
+lon_center <- -10
+
+earth <- st_as_sfc("POLYGON FULL", crs = "EPSG:4326")
+# If you specify the first argument (x = earth), some lines will be missing after clipping
+grat <- st_graticule(lon = seq(-180, 180, by = 20), lat = seq(-90, 90, by = 30))
+countries <- st_as_sf(s2_data_countries())
+oceans <- st_difference(earth, st_union(countries))
+
+# Clip the data using the visible half (otherwise problems can happen with the orthographic projection, for example countries with vertices in the non-visible part will disappear)
+buff <- st_buffer(st_as_sfc(paste0("POINT(", lon_center, " ", lat_center, ")"), crs = "EPSG:4326"), 9800000) # visible half
+countries_clipped <- st_intersection(buff, countries)
+oceans_clipped <- st_intersection(buff, oceans)
+grat_clipped <- st_intersection(buff, grat)
+
+projstring <- paste0("+proj=ortho +lat_0=", lat_center, " +lon_0=", lon_center)
+
+plot(st_transform(oceans_clipped, projstring), col = "lightblue")
+plot(st_transform(countries_clipped, projstring), col = NA, add = TRUE)
+plot(st_transform(grat_clipped, projstring), col = "grey50", add = TRUE)
 ```
 
 ### Exporting high quality maps
@@ -2454,9 +2642,28 @@ plot(st_geometry(lakes), col = rgb(162, 197, 243, maxColorValue = 255), border =
 
 ### tmap
 
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(terra)
+library(tmap)
+library(s2)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+sempach <- muni[muni$name == "Sempach",]
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+soi <- st_as_sfc("POINT(2657271 1219754)", crs = "EPSG:2056")
+data(World)
+elev <- rast("data/dem.tif")
+ortho <- rast("data/sempach_ortho.tif")
+```
+:::
+
 If you want to make more complex maps, you can still achieve almost everything using standard plotting procedures but you'll spend a lot of time trying to hack everything. If you're a `ggplot2` user, you can of course use it with spatial data. However there's another package, `tmap`, that is similar to `ggplot2` but more intuitive for maps and more GIS friendly. The `tmap` package is also based on the grammar of graphics approach that separates data and aesthetics app.
 
-:::callout-important
+::: callout-important
 This tutorial was written for `tmap` version 3.x. You will get strange results when using `tmap` version 4.x. I'll try to update this part as soon as possible!
 :::
 
@@ -2487,10 +2694,6 @@ map1 <- tm_shape(muni) + tm_polygons()
 map1 + tm_dots(size = 2) + tm_text("name", ymod = 1, col = "navy")
 ```
 
-```{r}
-tm_shape(sempach) + tm_polygons() + tm_shape(obs) + tm_dots()
-```
-
 By default, `tmap` is using the first `tmap_shape()` function to define the extent of the map. It is called the "master" shape. If you need to define your extent using another layer, you can add the `is.master = TRUE` argument to the desired `tmap_shape()` function.
 
 ```{r}
@@ -2498,7 +2701,7 @@ tm_shape(sempach) + tm_polygons() + tm_shape(obs) + tm_dots()
 tm_shape(sempach) + tm_polygons() + tm_shape(obs, is.master = TRUE) + tm_dots()
 ```
 
-We're not limited to vector data, `tmap` can easily plot `SpatRaster` objects (and also rasters coming from the `stars` package). We just need to combine `tm_shape()` with `tm_raster()` or `tm_rgb()` if you have RGB multiband raster. Internally `tmap` is using the `stars` package to process rasters, so there an internal conversion is happening for `SpatRaster` objects. By default rasters will be classified, if you want a continuous map, you can add the `style = "cont"` argument to the `tm_raster()` function. If you have a large raster, `tmap` will downsample it to gain speed. If you need the full resolution, you can add `raster.downsample = FALSE` to the `tm_shape()` function. You can of course combine vector and raster data.
+We're not limited to vector data, `tmap` can easily plot `SpatRaster` objects (and also rasters coming from the `stars` package). We just need to combine `tm_shape()` with `tm_raster()` or `tm_rgb()` if you have RGB multiband rasters. Internally `tmap` is using the `stars` package to process rasters, therefore an internal conversion is happening for `SpatRaster` objects. By default rasters will be classified, if you want a continuous map, you can add the `style = "cont"` argument to the `tm_raster()` function. If you have a large raster, `tmap` will downsample it to gain speed. If you need the full resolution, you can add `raster.downsample = FALSE` to the `tm_shape()` function. You can of course combine vector and raster data.
 
 ```{r}
 tm_shape(elev) + tm_raster()
@@ -2515,10 +2718,11 @@ tm_shape(elev) + tm_raster(style = "cont") + tm_layout(legend.outside = TRUE)
 
 #### Choropleth maps
 
-Producing a choropleth map is extremely easy with `tmap`. You just need to specify the attribute name inside the `tm_polygons()` function. The legend is automatically added. Changing the classification method is also possible.
+Producing a choropleth map is extremely easy with `tmap`. You just need to specify the attribute name inside the `tm_polygons()` function. The legend is automatically added. Changing the classification method is also possible with the `style` argument within the `tm_polygons()` function.
 
 ```{r}
 tm_shape(muni) + tm_polygons("popsize")
+tm_shape(muni) + tm_polygons("popsize", style = "quantile")
 ```
 
 You can easily map several attributes in the same plotting window. In the next example we also use the `tm_layout()` function to add a title and change the position of the legend.
@@ -2530,24 +2734,7 @@ tm_shape(muni) + tm_polygons(c("popsize", "area")) + tm_layout(title = c("Popula
                                                                title.position=c("right", "top"))
 ```
 
-The next example is not a choropleth map, but it shows you another way to plot a continuous variable on a map.
-
-```{r}
-tm_shape(muni) + tm_borders() + tm_bubbles("popsize", scale = 2)
-```
-
-::: {.callout-note icon="false" title="Exercise (5 minutes)"}
-Try to make a choropleth map of population size combined with `tm_bubbles`. What is happening with the legend? Try to give a different title to both legends.
-
-```{r}
-#| eval: false
-#| code-fold: true
-tm_shape(muni) + tm_polygons("popsize", title = "Population size (colors)") +
-                 tm_bubbles("popsize", scale = 2, title.size = "Population size (circles)")
-```
-:::
-
-The default color palettes used by `tmap` are not always appropriate. As we've seen earlier, the `RColorBrewer` and `viridis` packages provide really good color palettes. The `tmaptools` package provides a nice function to visualize them: `palette_explorer()`
+The default color palettes used by `tmap` are not always appropriate. As we've seen earlier, the `RColorBrewer` and `viridis` packages provide really good color palettes. The `tmaptools`[@tennekes_tmaptools_2021] package provides a nice function to visualize them: `palette_explorer()`
 
 ```{r}
 #| eval: false
@@ -2562,6 +2749,23 @@ tm_shape(muni) + tm_polygons("popsize", palette = "viridis", style = "quantile",
 tm_shape(muni) + tm_polygons("popsize", palette = "-viridis", style = "quantile",
                              title = "Population size", border.col = "white", lwd = 0.5)
 ```
+
+The next example is not a choropleth map, but it shows you another way to plot a continuous variable on a map.
+
+```{r}
+tm_shape(muni) + tm_borders() + tm_bubbles("popsize", scale = 2)
+```
+
+::: {.callout-note icon="false" title="Exercise (5 minutes)"}
+Try to make a choropleth map of population size combined with `tm_bubbles()`. What is happening with the legend? Try to give a different title to both legends.
+
+```{r}
+#| eval: false
+#| code-fold: true
+tm_shape(muni) + tm_polygons("popsize", title = "Population size (colors)") +
+                 tm_bubbles("popsize", scale = 2, title.size = "Population size (circles)")
+```
+:::
 
 #### Customizing layout
 
@@ -2580,7 +2784,7 @@ tm_shape(muni) + tm_polygons("popsize", palette = "viridis", style = "quantile",
 If you need to plot a world map with a legend, you can use the `tm_format(World)` or `tm_format(World_wide)` function to improve the format of the map. Here we also use the equal earth projection.
 
 ```{r}
-tm_shape(st_transform(World, 8857)) + tm_polygons("area") + tm_style("natural") + tm_format("World_wide")
+tm_shape(st_transform(World, "EPSG:8857")) + tm_polygons("area") + tm_style("natural") + tm_format("World_wide")
 ```
 
 Having multiple maps on the same plot can be achieved using the `tmap_arrange()` function. First create your maps and store them in a `tmap` object, then use them with `tmap_arrange()`.
@@ -2600,6 +2804,34 @@ obs$var1 <- runif(nrow(obs), 1, 100)
 tm_shape(obs) + tm_symbols(col = "var1") + tm_facets(by = "name")
 ```
 
+#### 2D globe
+
+```{r}
+options(s2_oriented = TRUE) # don't change orientation of the geometries (since the orientation is already correct)
+
+lat_center <- 40
+lon_center <- -10
+
+earth <- st_as_sfc("POLYGON FULL", crs = "EPSG:4326")
+# If you specify the first argument (x = earth), some lines will be missing after clipping
+grat <- st_graticule(lon = seq(-180, 180, by = 20), lat = seq(-90, 90, by = 30))
+countries <- st_as_sf(s2_data_countries())
+oceans <- st_difference(earth, st_union(countries))
+
+# Clip the data using the visible half (otherwise problems can happen with the orthographic projection, for example countries with vertices in the non-visible part will disappear)
+buff <- st_buffer(st_as_sfc(paste0("POINT(", lon_center, " ", lat_center, ")"), crs = "EPSG:4326"), 9800000) # visible half
+countries_clipped <- st_intersection(buff, countries)
+oceans_clipped <- st_intersection(buff, oceans)
+grat_clipped <- st_intersection(buff, grat)
+
+projstring <- paste0("+proj=ortho +lat_0=", lat_center, " +lon_0=", lon_center)
+
+tm_shape(oceans_clipped, projection = projstring) + tm_polygons(col = "lightblue") + tm_shape(countries_clipped, projection = projstring) + tm_borders() + tm_shape(grat_clipped, projection = projstring) + tm_lines(col = "grey50")
+# This should work but tm_grid seems to be buggy when using projections
+#tm_shape(oceans_clipped, projection = projstring) + tm_polygons(col = "lightblue") + tm_shape(countries_clipped, projection = projstring) + tm_borders() + tm_grid(labels.show = FALSE, projection = projstring)
+```
+
+
 #### Saving maps
 
 Saving maps is trivially easy using the `tmap_save()` function. The format is automatically recognized using the file name extension. You can also specify the height, width and resolution of the map.
@@ -2612,15 +2844,315 @@ tmap_save(map1, "mymap.png")
 
 ### mapsf
 
+On the to-do list...
+
 ## Dynamic maps
+
+Dynamic maps are amazing tools for data exploration and can also greatly help communicating some results. Several R packages are available to produce such maps. Some of them will do most of the hard job in the background (e.g., `mapview`, `tmap`) while others will offer more flexibility at the cost of more coding (e.g., `leaflet`[@cheng_leaflet_2023]).
+
+::: callout-important
+Nowadays, almost all dynamic maps on the web uses what is called the Pseudo-Mercator (or Web-Mercator) coordinate reference system (EPSG:3857). That's why your data will be automatically projected to this CRS when using the packages in this section. Remember that this CRS is not appropriate for analyses due to the massive deformations. Use it only for visualization purposes.
+:::
+
+### mapview
+
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(terra)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
+elev <- rast("data/dem.tif")
+```
+:::
+
+The mapview package provide a really simple interface to quickly create dynamic maps and it is thus my favorite for data exploration. It uses the `leaflet` package (which uses the leaflet JavaScript library) to do all the rendering. As we will see later it's also more efficient than other packages when you have large data sets.
+
+One of the default options (`fgb`) of the `mapview` package will cause some problems with several examples in this tutorial. We will thus deactivate it.
+
+```{r}
+library(mapview)
+mapviewOptions(fgb = FALSE)
+```
+
+#### Simple maps
+
+The main function used to create maps is simply called `mapview()`. It will accept any `sf` or `sfc` object.
+
+```{r}
+mapview(muni)
+```
+
+If you don't like the default color, you can change it using the `color.regions` argument. It is also possible to specify the name of an attribute that will be shown on mouseover using the `label` argument. Here we will use the name of the municipalities.
+
+```{r}
+mapview(muni, col.regions = "purple", label = "name")
+```
+
+You can also easily plot multiple data sets using a list or by adding `mapview` objects together. Note how it's possible to show/hide layers in the map.
+
+```{r}
+#| eval: false
+mapview(list(muni, obs))
+mapview(muni) + mapview(obs)
+mapview(muni) + obs
+```
+
+```{r}
+#| echo: false
+mapview(list(muni, obs))
+```
+
+If you use a list to combine several data sets, you can easily customize some arguments per data set (also using lists).
+
+```{r}
+mapview(list(muni, obs), legend = list(FALSE, TRUE), homebutton = list(TRUE, FALSE))
+```
+
+If you want to produce a map for a specific data set but use the extent of another data set, you can use the `hide=TRUE` argument for the data set defining the extent.
+
+```{r}
+mapview(muni[muni$name == "Sursee",], layer.name = "Sursee") + mapview(muni, hide = TRUE)
+```
+
+For data exploration, it can sometimes be useful to "explode" a data set by columns. This is possible thanks to the `burst` argument. The result will be a map with one layer per attribute.
+
+```{r}
+mapview(muni, burst = TRUE)
+```
+
+Sometimes it's more interesting to burst a data set by rows. For example if you have a data set containing data for several species, you can easily produce a map with one layer per species. To do that, the `burst` argument must be equal to the name of the splitting attribute (or you must specify something for the `zcol` argument).
+
+```{r}
+mapview(obs, burst = "name")
+```
+
+```{r}
+#| eval: false
+# Equivalent
+mapview(obs, zcol = "name", burst = TRUE)
+```
+
+The `mapview` package can also plot raster data sets. It will accept `terra` and `stars` objects. Transparency should be possible but it's currently not working (at least on my computer). Since the raster will be reprojected, you need to choose the resampling algorithm carefully (e.g., bilinear for continuous rasters and nearest neighbor for discrete ones). You can specify it using the `method` argument.
+
+```{r}
+mapview(elev, alpha.regions = 0.5)
+```
+
+You can easily change the available background maps using the `map.types` argument. All the available basemaps with their respective names are shown on the following website: <https://leaflet-extras.github.io/leaflet-providers/preview>{target="_blank"}. You can also get the full list by calling the function `names(leaflet::providers)`. It is for example possible to use the Swiss national maps and orthophotos.
+
+```{r}
+mapview(obs, map.types = c("SwissFederalGeoportal.NationalMapColor", "SwissFederalGeoportal.NationalMapGrey", "SwissFederalGeoportal.SWISSIMAGE"))
+```
+
+If you want to have the Swiss maps by default when using `mapview`, you can change the options for the current R session using the `basemaps` argument of the `mapviewOptions()` function. Restoring the default options is also possible.
+
+```{r}
+mapviewOptions(basemaps = c("SwissFederalGeoportal.NationalMapColor", "SwissFederalGeoportal.NationalMapGrey", "SwissFederalGeoportal.SWISSIMAGE"))
+mapview(muni)
+# Restore defaults
+mapviewOptions(default = TRUE)
+```
+
+#### Choropleth maps
+
+Producing choropleth maps is also possible. You need to specify the attributes using the `zcol` argument.
+
+```{r}
+mapview(muni, zcol = "popsize")
+```
+
+You can specify your own values for the breakpoints used for the visualization. Here we use the `classInt` package to compute the breakpoints based on the quantiles of one variable. Check the help page of the `classIntervals()` function to see all the available breakpoint types.
+
+```{r}
+library(classInt)
+breaks <- classIntervals(muni$popsize, n = 4, style = "quantile")
+mapview(muni, zcol = "popsize", at = breaks$brks)
+```
+
+Use a list for the `zcol` argument if you need to visualize several data sets together but using different attributes for the symbology.
+
+```{r}
+mapview(list(muni, obs), zcol = list("popsize", "name"))
+```
+
+#### Customize popups
+
+You can easily change the attribute that is shown for mouseovers when using a vector data set. Just set the `label` argument to the name of the attribute.
+
+```{r}
+mapview(muni, zcol = "popsize", label = "name")
+```
+
+It is also possible to restrict the number of attributes shown when clicking on a feature thanks to the `popup` argument.
+
+```{r}
+mapview(muni, popup = c("name", "popsize"))
+```
+
+It is also possible to completely change the display of the popup with the help of the `leafpop` package. Here's one example where we display a photo of the species for some bird sightings in our data set.
+
+```{r}
+library(leafpop)
+
+obs2 <- obs[20:40,]
+
+blackbird_img <- "https://www.vogelwarte.ch/wp-content/assets/images/bird/species/4240_1.jpg"
+bluetit_img <- "https://www.vogelwarte.ch/wp-content/assets/images/bird/species/3800_1.jpg"
+wagtail_img <- "https://www.vogelwarte.ch/wp-content/assets/images/bird/species/5030_1.jpg"
+imgs <- c(blackbird_img, bluetit_img, wagtail_img)
+
+imgs <- character(nrow(obs2))
+imgs[which(obs2$name == "Eurasian Blackbird")] <- blackbird_img
+imgs[which(obs2$name == "Eurasian Blue Tit")] <- bluetit_img
+imgs[which(obs2$name == "White Wagtail")] <- wagtail_img
+
+mapview(obs2, popup = popupImage(imgs, src = "remote"))
+```
+
+#### Compare maps
+
+If you want to compare maps or data sets, you can use two interesting packages in combination with `mapview` (and `leaflet`) objects.
+
+The first possibility consists of adding a slider to switch between two maps. In the following example, we first create two new data sets using the municipalities. The first one has an attribute showing the number of bird sightings in April, and the second one has an attribute for the number of sightings in July.
+
+```{r}
+obs$date <- as.Date(obs$date)
+obs$month <- as.numeric(format(obs$date, "%m"))
+
+counts_muni_april <- st_as_sf(data.frame(counts = lengths(st_intersects(muni, obs[obs$month == 4,])), geometry = muni))
+counts_muni_july <- st_as_sf(data.frame(counts = lengths(st_intersects(muni, obs[obs$month == 7,])), geometry = muni))
+```
+
+We can now create the two `mapview` objects and compare them thanks to the `|` operator of the `leaflet.extras2` package. Note that we need to manually specify the breakpoints to be sure that both data sets have the same ones.
+
+```{r}
+library(leaflet.extras2)
+
+maxcounts <- max(max(counts_muni_april$counts), max(counts_muni_july$counts))
+
+m1 <- mapview(counts_muni_april, zcol = "counts", at = pretty(0:maxcounts))
+m2 <- mapview(counts_muni_july, zcol = "counts", at = pretty(0:maxcounts))
+
+m1|m2
+```
+
+The other possibility consists of displaying the maps side by side and synchronizing them using the `sync()` function of the `leafsync` package. Instead of using two data sets, we will now use the same data set but with two different background maps.
+
+```{r}
+library(leafsync)
+
+m1 <- mapview(counts_muni_april, zcol = "counts", map.types = "CartoDB.Positron")
+m2 <- mapview(counts_muni_april, zcol = "counts", map.types = "Esri.WorldImagery")
+sync(m1, m2)
+```
+
+If the extent of the two data sets you want to compare is different, be sure to use the `hide=TRUE` argument (see example above) to force an initial common extent for the two maps.
+
+```{r}
+m1 <- mapview(muni[muni$name == "Sursee",]) + mapview(muni, hide = TRUE)
+m2 <- mapview(muni[muni$name == "Eich",]) + mapview(muni, hide = TRUE)
+sync(m1, m2)
+```
+
+#### Large data sets
+
+If you have large data sets with thousands of points or hundreds of complex polygons, the default `leaflet` library will probably not be able to render your data. In this case you can change the rendering engine to use the `leafgl` package (based on the `Leaflet.glify` library extending `leaflet`). In this case it is recommended to deactivate the map viewer in RStudio since it can cause some crashes. The map will be displayed in a new browser window.
+
+```{r}
+mapviewOptions(platform = "leafgl", viewer.suppress = TRUE)
+pts <- st_sample(muni, 100000)
+pts <- st_intersection(muni, pts)
+mapview(pts)
+# Restore defaults
+mapviewOptions(default = TRUE)
+```
+
+#### Customize zoom/extent
+
+Unfortunately it is not possible to limit the zoom factors and/or the map extent directly in the `mapview()` function. However, since `mapview` also produces a `leaflet` object, there are indirect solutions. It is possible to either first create a custom-made `leaflet` object and assign it to our `mapview` object. Or we can first create our `mapview` object and then manually hack the `leaflet` object inside.
+
+Here we limit only the zooming.
+
+```{r}
+map <- leaflet::leaflet(options = leafletOptions(minZoom = 10, maxZoom = 12)) |> addTiles()
+mapview(muni, map = map)
+```
+
+We can also produce a semi-static map. No dragging or zooming is allowed but the map is still interactive.
+
+```{r}
+map <- leaflet::leaflet(options = leafletOptions(zoomControl = FALSE, minZoom = 12, maxZoom = 12, dragging = FALSE)) |> addTiles()
+mapview(muni, map = map)
+```
+
+If we need to limit the zoom factors and the extent, we do the following.
+
+```{r}
+map <- leaflet::leaflet(options = leafletOptions(minZoom = 10, maxZoom = 12)) |> addTiles() |> setMaxBounds(lng1 = 8, lat1 = 47, lng2 = 8.5, lat2 = 47.3)
+mapview(muni, map = map)
+```
+
+Here's how we can hack the `leaflet` object after creating the `mapview` object.
+
+```{r}
+m <- mapview(muni)
+m@map <- leaflet::setMaxBounds(m@map, lng1 = 8, lat1 = 47, lng2 = 8.5, lat2 = 47.3)
+m@map$x$options$minZoom <- 10
+m@map$x$options$maxZoom <- 12
+m
+```
+
+The following hack produces the same result for the extent (instead of using the `setMaxBound()` function).
+
+```{r}
+#| eval: false
+m <- mapview(muni)
+m@map$x$options$maxBounds <- list(list(c(47, 8)), list(c(47.3, 8.5)))
+```
+
+#### Saving maps
+
+Once you're happy with your map, you can export an HTML file using the `mapshot()` function. It should also be possible to export your map as a static image using the `file` argument instead of `url`. Unfortunately it doesn't seem to work with the current version of `mapview`. If you manage to make it work, you can decide which controls should be removed (or not, typically the scale bar) using the `remove_controls` argument.
+
+```{r}
+#| eval: false
+map <- mapview(muni, col.regions = "purple", label = "name")
+mapshot(map, url = "export/testmap.html")
+```
+
 ### tmap
 
-The `tmap` package is not only amazing for static maps, you can also produce dynamic maps such the ones you find on the web. You need to switch the `tmap`mode using `tmap_mode("view")`. If you want to produce static maps, you can switch back to the standard mode using `tmap_mode("plot")`. Most of the functions and parameters are also available for dynamic maps. Note that the data is automatically projected to the Web Mercator projection.
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
+```{r}
+#| eval: false
+library(sf)
+library(tmap)
+muni <- st_read("data/geodata.gpkg", "municipalities", quiet = TRUE)
+soi <- st_as_sfc("POINT(2657271 1219754)", crs = "EPSG:2056")
+```
+:::
+
+::: callout-important
+This tutorial was written for `tmap` version 3.x. You will get strange results when using `tmap` version 4.x. I'll try to update this part as soon as possible!
+:::
+
+The `tmap` package is not only amazing for static maps, you can also produce dynamic maps using the same code. You need to switch the `tmap`mode using `tmap_mode("view")`. If you want to produce static maps, you can switch back to the standard mode using `tmap_mode("plot")`. Most of the functions and parameters are also available for dynamic maps. Similarly to `mapview`, the data is automatically projected to the Pseudo-Mercator CRS.
 
 ```{r}
 tmap_mode("view")
 tm_shape(muni) + tm_polygons("popsize", palette = "viridis", style = "quantile",
                              title = "Population size", border.col = "white", lwd = 0.5)
+```
+
+It if of course possible to combine different data sets and use rasters. Once again, this is the same code we would have used for a static map.
+
+```{r}
+tm_shape(elev) + tm_raster(style = "cont") + tm_shape(muni) + tm_borders() + tm_shape(obs) + tm_dots(size = 0.2, col = "navy")
 ```
 
 If you plot two maps side by side, they'll be synchronized.
@@ -2629,72 +3161,57 @@ If you plot two maps side by side, they'll be synchronized.
 tm_shape(muni) + tm_polygons(c("popsize", "area"), palette = "Oranges")
 ```
 
-If you need other background maps, you can use the `tm_basemap()` function. It is even possible to use the Swiss topographic maps or the orthophotos provided by Swisstopo.
+If you need other background maps, you can use the `tm_basemap()` function. Like with `mapview`, it is of course also possible to use the Swiss topographic maps or the orthophotos provided by Swisstopo. All the available basemaps with their respective names are shown on the following website: <https://leaflet-extras.github.io/leaflet-providers/preview>{target="_blank"}. You can also get the full list by calling the function `names(leaflet::providers)`. If your favorite map is not listed there but you know the URL of a tile server (such as WMTS), you can also use it inside the `tm_basemap()` function (e.g., for the Swiss grey map, you would use the following: `tm_basemap("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-grau/default/current/3857/{z}/{x}/{y}.jpeg")`).
 
 ```{r}
-ext <- st_bbox(c(xmin = 8.05, xmax = 8.55, ymin = 46.875, ymax = 47.125), crs = st_crs(4326))
-tm_shape(soi) + tm_dots(col = "red", size = 1) +
-  tm_basemap("https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-grau/default/current/3857/{z}/{x}/{y}.jpeg") +
-  tm_view(bbox = ext)
+m1 <- tm_shape(soi) + tm_dots(col = "red", size = 1) + tm_basemap("SwissFederalGeoportal.NationalMapColor")
+m1
 ```
 
-If you need the Swiss topographic map with colors, use the following URL: https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg
-
-If you need the orthophotos, use the following URL: https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.swissimage/default/current/3857/{z}/{x}/{y}.jpeg
-
-### mapview
-
-The `tmap` package is sometimes too complex for simple visualizations. You can also use the `mapview` package which is really efficient for large data sets.
+When using dynamic maps, you can specify additional options that are not available for static maps using the `tm_view()` function. For example you can limit the zoom factors and the available extent.
 
 ```{r}
-library(mapview)
-mapview(muni)
+m1 + tm_view(set.zoom.limits = c(10, 12), set.bounds = c(8, 47, 8.5, 47.3))
 ```
 
-You can also easily plot multiple data sets using a list.
+Similarly to `mapview`, you can also change the default basemaps using the `basemaps` argument of the `tmap_options()` function.
 
 ```{r}
-mapview(list(muni, obs))
-```
-
-And producing choropleth maps is also possible. You need to specify the attributes using the `zcol` argument.
-
-```{r}
-mapview(muni, zcol = "popsize")
-```
-
-The `mapview` package can also plot raster data sets, but you need to convert them to stars objects first. Transparency is also possible.
-
-```{r}
-elev_stars <- stars::st_as_stars(elev)
-mapview(elev_stars, alpha.regions = 0.5)
+opts <- tmap_options(basemaps = c(NationalMapColor = "SwissFederalGeoportal.NationalMapColor", NationalMapGrey = "SwissFederalGeoportal.NationalMapGrey", SWISSIMAGE = "SwissFederalGeoportal.SWISSIMAGE"))
+tm_shape(soi) + tm_dots(col = "red", size = 1)
+# Restore defaults
+tmap_options(opts)
 ```
 
 ### leaflet
+
+On the to-do list...
+
 ### mapgl
+
+On the to-do list...
 
 ## Using QGIS through R
 
-Sometimes you know how to do things in QGIS and you don't have the time to search how to do it in R, or maybe QGIS is faster for a specific task. A recent R package called `qgisprocess` was developed for this reason. It gives access to the whole Processing toolbox available in QGIS. Currently it is only available on GitHub and not yet on CRAN, but you can use the `install_github()` function provided by the `remotes` package to install it. Of course you need to have QGIS installed as well.
-
+::: {.callout-tip appearance="minimal" collapse="true" title="If you start from here..."}
+Run the following code to load and create everything you'll need to run the examples in this section.
 ```{r}
 #| eval: false
-remotes::install_github("paleolimbot/qgisprocess")
+library(sf)
+obs <- read.csv("data/observations.csv")
+obs <- st_as_sf(obs, coords = c("x", "y"), crs = "EPSG:2056")
 ```
+:::
 
-To use it, you first need to run the `qgis_configure()` function so that the package can look for a QGIS installation. If you have several versions of QGIS installed, you can use `options(qgisprocess.path = "path/to/qgis_process")` or set the `R_QGISPROCESS_PATH` environment variable.
+Sometimes you know how to do things in QGIS and you don't have the time to search how to do it in R, or maybe QGIS is faster for a specific task. A recent R package called `qgisprocess`[@dunnington_r_2024] was developed for this reason. It gives access to the whole Processing toolbox available in QGIS. Of course you need to have QGIS installed as well. I will not go into the details of all the possibilities here but just show a quick example.
 
-```{r}
-#| echo: false
-options(qgisprocess.path = "/Applications/QGIS.app/Contents/MacOS/bin/qgis_process")
-```
+If you have multiple versions of QGIS installed, `qgisprocess` should find all of them and automatically use the most recent one.
 
 ```{r}
 library(qgisprocess)
-qgis_configure()
 ```
 
-You can easily list all the available algorithms using the `qgis_algorithms()` function. For example let's compute a simple buffer around our sightings. The package will convert the `sf` object to a format understood by QGIS, then QGIS will compute the buffer and produce a GeoPackage with the output. We can then import it back to an `sf` object.
+You can easily list all the available algorithms using the `qgis_algorithms()` function or search for a specific one using the `qgis_search_algorithms()` function. For example let's compute a simple buffer around our sightings. The package will convert the `sf` object to a format understood by QGIS, then QGIS will compute the buffer and produce a GeoPackage with the output. We can then import it back to an `sf` object thanks to the `st_as_sf()` function. Recent versions of the package also support `terra` objects. If the output of the processing algorithm is a raster, you should thus use the `qgis_as_terra()` function instead of `st_as_sf()`.
 
 ```{r}
 obs_buff_qgis_res <- qgis_run_algorithm("native:buffer", 
@@ -2703,11 +3220,23 @@ obs_buff_qgis_res <- qgis_run_algorithm("native:buffer",
                                         DISSOLVE = TRUE,
                                         .quiet = TRUE)
 obs_buff_qgis_res
-obs_buff_qgis <- st_read(qgis_output(obs_buff_qgis_res, "OUTPUT"), quiet = TRUE)
+obs_buff_qgis <- st_as_sf(obs_buff_qgis_res, as_tibble = FALSE)
 plot(st_geometry(obs_buff_qgis))
 ```
 
-To check the name of the function parameters, you can access the QGIS help files through R using the `qgis_show_help()` function.
+To check the name of the function parameters, you can access the QGIS help files through R using the `qgis_show_help()` function, or just display the parameters using the `qgis_get_argument_specs()` function.
+
+```{r}
+qgis_get_argument_specs("native:buffer")
+```
+
+If you want to clean the temporary data that is created by `qgisprocess`, you can use the `qgis_clean_result()` function.
+
+```{r}
+file.exists(qgis_extract_output(obs_buff_qgis_res))
+qgis_clean_result(obs_buff_qgis_res)
+file.exists(qgis_extract_output(obs_buff_qgis_res))
+```
 
 ## Getting data
 
@@ -2715,40 +3244,26 @@ Here's a non-exhaustive list of packages you can use to download GIS data.
 
 | Package name | Description |
 |------------------|------------------------------------------------------|
-| osmdata | Download and import small OpenStreetMap datasets |
-| osmextract | Download and import large OpenStreetMap datasets |
-| geodata | Download and import imports administrative, elevation, WorldClim data |
-| rnaturalearth | Access to Natural Earth vector and raster data |
-| rnoaa | Imports National Oceanic and Atmospheric Administration (NOAA) climate data |
-| elevatr | Import digital elevation models |
-| giscoR | Tools to download data from the GISCO (Geographic Information System of the Commission) Eurostat database |
-| rsi | Download Landsat and Sentinel data and compute spectral indices |
-| MODIStsp | Download MODIS satellite data |
-| swissgd | Download data from the Swiss geodata infrastructure <https://github.com/zumbov2/swissgd>{target="_blank"} |
+| `maptiles` | Download and import background maps from several providers |
+| `osmdata` | Download and import small OpenStreetMap data sets |
+| `osmextract` | Download and import large OpenStreetMap data sets |
+| `geodata` | Download and import imports administrative, elevation, WorldClim data |
+| `rnaturalearth` | Access to Natural Earth vector and raster data |
+| `elevatr` | Import digital elevation models |
+| `giscoR` | Tools to download data from the GISCO (Geographic Information System of the Commission) Eurostat database |
+| `rsi` | Download Landsat and Sentinel data and compute spectral indices |
+| `modisfast` | Download MODIS satellite data |
+| `swissgd` | Download data from the Swiss geodata infrastructure (<https://github.com/zumbov2/swissgd>{target="_blank"}) |
 
 ## More help
 
 If you need more help, documentation, code examples, you should have a look at the `sf` vignettes and the `terra` documentation (<https://rspatial.org>{target="_blank"}).
 
-The book "Geocomputation with R" is absolutely amazing and available for free (legally) on the web: <https://r.geocompx.org>{target="_blank"}. If you really like `tmap`, you should also check the `tmap` book that is also available for free on the web (but is not yet finished): <https://r-tmap.github.io/tmap-book>{target="_blank"}. If you don't really like `tmap` you can also have a look at the `mapsf` package.
+The book *Geocomputation with R*[@lovelace_geocomputation_2019] is absolutely amazing and available for free (legally) on the web: <https://r.geocompx.org>{target="_blank"}. The book *Spatial Data Science*[@pebesma_spatial_2023] also provides some advanced information on spatial data: <https://r-spatial.org/book/>{target="_blank"}.
+
+If you really like `tmap`, you should also check the `tmap` website (<https://r-tmap.github.io/tmap>{target="_blank"}). There's also a book draft (but it is unfortunately not updated for tmap v4): <https://r-tmap.github.io/tmap-book>{target="_blank"}[@tennekes_elegant_2021].
 
 ## References
 
 ::: {#refs}
 :::
-
-Appelhans T., Detsch F., Reudenbach C., Woellauer S. (2022). mapview: Interactive Viewing of Spatial Data in R. R package version 2.11.0
-
-Bivand R. (2022) R Packages for Analyzing Spatial Data: A Comparative Case Study with Areal Data Geographical Analysis, 54(3), 488-518
-
-Hijmans R. (2022). terra: Spatial Data Analysis. R package version 1.6-47
-
-Pebesma E. (2018). Simple Features for R: Standardized Support for Spatial Vector Data. The R Journal, 10(1), 439-446
-
-Pebesma E., Bivand R. 2022
-
-Tennekes M. (2018). tmap: Thematic Maps in R. Journal of Statistical Software, 84(6), 1-39
-
-Tennekes M. (2021). tmaptools: Thematic Map Tools. R package version 3.1-1
-
-Tennekes M., Nowosad J. (2021). Elegant and informative maps with tmap. https://r-tmap.github.io/tmap-book/index.html
