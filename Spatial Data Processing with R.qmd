@@ -2525,11 +2525,16 @@ data(World)
 ```
 :::
 
-As we've seen before, the default projection that is used to plot data with a geographic CRS is not ideal. The distortions are large and the map will appear elongated. If you want to plot world maps, I recommend using either the Robinson projection, which was designed to be aesthetically pleasing, or the Equal-Earth projection, which has the advantage of having equal areas. The Winkel tripel projection can also be a good choice. I also strongly recommend the xkcd comic on map projections (<https://xkcd.com/977>{target="_blank"}).
+As we've seen before, the default projection that is used to plot data with a geographic CRS is not ideal. The distortions are large and the map will appear elongated. If you want to plot world maps, I recommend using either the Robinson projection, which was designed to be aesthetically pleasing, or the Equal-Earth projection, which has the advantage of having equal areas. The Winkel tripel projection can also be a good choice. I also strongly recommend the xkcd comic on map projections (<https://xkcd.com/977>{target="_blank"}). We need to include a graticule to display the limits of the world map.
 
 ```{r}
+grat <- st_geometry(st_graticule(lon = seq(-180, 180, by = 40), lat = seq(-91, 91, by = 30)))
+
 plot(st_transform(st_geometry(World), "ESRI:54030"))
+plot(st_transform(grat, "ESRI:54030"), col = "grey50", add = TRUE)
+
 plot(st_transform(st_geometry(World), "EPSG:8857"))
+plot(st_transform(grat, "EPSG:8857"), col = "grey50", add = TRUE)
 ```
 
 If you want to plot a 2D globe, you can use the orthographic projection. You can center the globe on one point by modifying the `lat_center` and `lon_center` variables in the following code.
